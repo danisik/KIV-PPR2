@@ -25,7 +25,7 @@ int wmain(int argc, wchar_t** argv) {
 	- Program musí skonèit do 15 minut
 	*/
 	
-	std::string filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\dataa.bin";
+	std::string filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\data.iso";
 	double percentile = (double)55 / (double)100;
 	std::string cpu = "";
 
@@ -50,10 +50,10 @@ int wmain(int argc, wchar_t** argv) {
 		test++;
 		
 		
-		if (test == 200)
+		if (test == 1)
 		{
 			std::wcout << std::endl;
- 			//break;
+ 			break;
 		}
 		
 
@@ -90,8 +90,7 @@ HistogramObject getBucket(std::string filePath, double percentile, std::string c
 	}
 	else
 	{
-		std::vector<HistogramObject> buckets;
-		std::vector<char> data(BLOCKSIZE);
+		std::vector<HistogramObject> buckets;		
 
 		long i = 0;
 		long numbersCount = 0;		
@@ -117,9 +116,8 @@ HistogramObject getBucket(std::string filePath, double percentile, std::string c
 		while (true)
 		{			
 			// Read block of data.
-			data.clear();
 			stream.seekg(offset * BLOCKSIZE);
-			stream.read(reinterpret_cast<char*>(data.data()), BLOCKSIZE);
+			stream.read(reinterpret_cast<char*>(buffer), BLOCKSIZE);
 
 			offset++;
 
@@ -128,34 +126,36 @@ HistogramObject getBucket(std::string filePath, double percentile, std::string c
 			{
 				break;
 			}
-			
-			// Get double value from char array.
-			double value = 0;
-			std::copy(data.data(), data.data() + sizeof(double), reinterpret_cast<unsigned char*>(&value));
 
-			// Check if double value is correct value.
-			if (Utils::isCorrectValue(value))
+			long read = stream.gcount() / sizeof(double);
+
+			for (long i = 0; i < read; i++)
 			{
-				// Check if value is in histogram range.
-				if (value <= max && value >= min)
+				double value = buffer[i];
+				// Check if double value is correct value.
+				if (Utils::isCorrectValue(value))
 				{
-					// Get position using binary search.
-					//long position = 1;
-					long position = Utils::binarySearch(buckets, 0, buckets.size() - 1, value);
-
-					// If position was found.
-					if (position != -1)
+					// Check if value is in histogram range.
+					if (value <= max && value >= min)
 					{
-						HistogramObject& bucket = buckets[position];
-						bucket.incrementFrequency();
-					}
-					else
-					{
-						buckets.back().incrementFrequency();
-					}
+						// Get position using binary search.
+						//long position = 1;
+						long position = Utils::binarySearch(buckets, 0, buckets.size() - 1, value);
 
-					// Increment numbers.
-					numbersCount++;
+						// If position was found.
+						if (position != -1)
+						{
+							HistogramObject& bucket = buckets[position];
+							bucket.incrementFrequency();
+						}
+						else
+						{
+							buckets.back().incrementFrequency();
+						}
+
+						// Increment numbers.
+						numbersCount++;
+					}
 				}
 			}
 		}
