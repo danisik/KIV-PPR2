@@ -5,10 +5,6 @@
 
 #include "HistogramObject.h"
 
-static constexpr const unsigned int MB = 1024*1024;
-static constexpr const double DOUBLE_MIN = std::numeric_limits<double>::lowest();
-static constexpr const double DOUBLE_MAX = std::numeric_limits<double>::max();
-
 #pragma once
 class Utils
 {

@@ -35,27 +35,23 @@ int wmain(int argc, wchar_t** argv) {
 
 	auto t_start = std::chrono::high_resolution_clock::now();
 	int test = 0;
+
 	// Return buckets until only single number is presented.
 	while (true)
 	{
-		// TODO: dostane se to až na tak malé hodnoty že vypoètený krok je 0 -> skonèí to na 0
 		resultBucket = getBucket(filePath, percentile, cpu, min, max);
 		min = resultBucket.getMin();
 		max = resultBucket.getMax();
 
-		std::wcout << "Min: " << resultBucket.getMin() << std::endl;
-		std::wcout << "Max: " << resultBucket.getMax() << std::endl;
-		std::wcout << "Frequency: " << resultBucket.getFrequency() << std::endl;
-
-		test++;
-		
-		
+		test++;				
 		if (test == 1)
 		{
 			std::wcout << std::endl;
+			std::wcout << "Min: " << resultBucket.getMin() << std::endl;
+			std::wcout << "Max: " << resultBucket.getMax() << std::endl;
+			std::wcout << "Frequency: " << resultBucket.getFrequency() << std::endl;
  			break;
-		}
-		
+		}		
 
 		if (min == max)
 		{
@@ -160,52 +156,7 @@ HistogramObject getBucket(std::string filePath, double percentile, std::string c
 			}
 		}
 
-		/*
-		// Calculate percentiles.
-		for (HistogramObject& bucket : buckets)
-		{
-			cumulativeFrequency += bucket.getFrequency();
-
-			double calculatedPercentile = bucket.calculatePercentile(cumulativeFrequency, numbersCount);
-
-			// If calculated percentile is same as provided, return min max. If this bucket is the last, then use it.
-			if (calculatedPercentile == percentile || i == (buckets.size() - 1))
-			{
-				resultBucket = bucket;
-				break;
-			}
-			else if (calculatedPercentile > percentile)
-			{
-				// If any previous calculated percentile is presented, then compare difference and pick that bucket, which difference is lower.
-				if (i > 0)
-				{
-					HistogramObject previousBucket = buckets[i - 1];
-					double previousPercentile = previousBucket.getPercentile();
-
-					// Compare percentile differences between previous bucket and current bucket.
-					if (std::abs(previousPercentile - percentile) < std::abs(calculatedPercentile - percentile))
-					{
-						resultBucket = previousBucket;
-						break;
-					}
-					else
-					{
-						resultBucket = bucket;
-						break;
-					}
-				}
-				else
-				{
-					resultBucket = bucket;
-					break;
-				}
-			}
-
-			i++;
-		}
-		*/
-
-		// Calculate position.
+		// Calculate position of desired bucket.
 		double calculatedPosition = std::ceil(percentile * numbersCount);
 		long cumulativeFrequency = 0;
 		long position = 0;

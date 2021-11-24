@@ -5,7 +5,6 @@ class HistogramObject
 		double min;
 		double max;
 		long frequency;
-		double percentile;
 
 	public:
 		HistogramObject();
@@ -13,9 +12,6 @@ class HistogramObject
 		void incrementFrequency();
 		double getMin();
 		double getMax();
-		bool isBucketed();
 		long getFrequency();
-		double calculatePercentile(long cumulativeFrequency, long numbersCount);
-		double getPercentile();
 };
 
