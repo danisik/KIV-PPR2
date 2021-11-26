@@ -4,6 +4,8 @@ class HistogramObject
 	private: 
 		double min;
 		double max;
+		double minValueFile;
+		double maxValueFile;
 		long frequency;
 
 	public:
@@ -13,5 +15,9 @@ class HistogramObject
 		double getMin();
 		double getMax();
 		long getFrequency();
+		double getMinValueFile();
+		double getMaxValueFile();
+		void setMinValueFile(double pMin);
+		void setMaxValueFile(double pMax);
 };
 

@@ -19,15 +19,17 @@ bool Utils::isCorrectValue(double value)
 long Utils::binarySearch(std::vector<HistogramObject>& buckets, long left, long right, double value)
 {
     if (right >= left) 
-    {
+    {       
         long mid = left + (right - left) / 2;
+        double min = buckets[mid].getMin();
+        double max = buckets[mid].getMax();
 
         // If the element is present at the middle itself
-        if (value < buckets[mid].getMax() && value >= buckets[mid].getMin())
+        if (value <= max && value >= min)
             return mid;
 
         // If element is smaller than mid, then it can only be present in left subarray
-        if (buckets[mid].getMin() > value)
+        if (min > value)
             return binarySearch(buckets, left, mid - 1, value);
 
         // Else the element can only be present in right subarray
