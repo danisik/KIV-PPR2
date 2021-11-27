@@ -4,23 +4,23 @@ bool Utils::isCorrectValue(double value)
 {
 	switch (fpclassify(value))
 	{
-	case FP_NORMAL:
-	case FP_ZERO:
-		return true;
+	    case FP_NORMAL:
+	    case FP_ZERO:
+		    return true;
 
-	case FP_INFINITE:
-	case FP_NAN:
-	case FP_SUBNORMAL:
-	default:
-		return false;
+	    case FP_INFINITE:
+	    case FP_NAN:
+	    case FP_SUBNORMAL:
+	    default:
+		    return false;
 	}
 }
 
-long Utils::binarySearch(std::vector<HistogramObject>& buckets, long left, long right, double value)
+size_t Utils::binarySearch(std::vector<HistogramObject>& buckets, size_t left, size_t right, double value)
 {
     if (right >= left) 
     {       
-        long mid = left + (right - left) / 2;
+        size_t mid = left + (right - left) / 2;
         double min = buckets[mid].getMin();
         double max = buckets[mid].getMax();
 

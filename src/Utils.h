@@ -10,6 +10,6 @@ class Utils
 {
 	public:
 		static bool isCorrectValue(double value);
-		static long binarySearch(std::vector<HistogramObject>& buckets, long l, long r, double value);
+		static size_t binarySearch(std::vector<HistogramObject>& buckets, size_t l, size_t r, double value);
 };
 

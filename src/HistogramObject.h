@@ -6,7 +6,7 @@ class HistogramObject
 		double max;
 		double minValueFile;
 		double maxValueFile;
-		long frequency;
+		size_t frequency;
 
 	public:
 		HistogramObject();
@@ -14,7 +14,7 @@ class HistogramObject
 		void incrementFrequency();
 		double getMin();
 		double getMax();
-		long getFrequency();
+		size_t getFrequency();
 		double getMinValueFile();
 		double getMaxValueFile();
 		void setMinValueFile(double pMin);

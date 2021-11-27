@@ -11,7 +11,7 @@
 static constexpr const unsigned int MB = 1024 * 1024;
 
 static constexpr const long BLOCKSIZE = MB / sizeof(double);
-static constexpr const long BUCKET_COUNT =  MB / sizeof(HistogramObject);
+static constexpr const long BUCKET_COUNT = MB / sizeof(HistogramObject);
 
 double buffer[BLOCKSIZE];
 

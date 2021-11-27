@@ -33,7 +33,7 @@ double HistogramObject::getMax()
 	return this->max;
 }
 
-long HistogramObject::getFrequency()
+size_t HistogramObject::getFrequency()
 {
 	return this->frequency;
 }

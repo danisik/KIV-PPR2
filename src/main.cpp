@@ -24,9 +24,8 @@ int wmain(int argc, wchar_t** argv) {
 
 	- Program musí skonèit do 15 minut
 	*/
-	
 	std::string filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3";
-	double percentile = (double)1 / (double)100;
+	double percentile = (double)42 / (double)100;
 	std::string cpu = "";
 
 	// Set first min and max.
@@ -38,10 +37,10 @@ int wmain(int argc, wchar_t** argv) {
 	int cycles = 0;
 
 	// Open stream to file.
-	std::ifstream stream(filePath, std::ios::in | std::ios::binary);	
+	std::ifstream stream(filePath, std::ios::in | std::ios::binary);
 
 	if (!(stream && stream.is_open()))
-	{	
+	{
 		std::wcout << "file not exists" << std::endl;
 		system("pause");
 		return 1;
@@ -73,8 +72,6 @@ int wmain(int argc, wchar_t** argv) {
 		}
 	}
 
-	stream.close();
-
 	// TODO: Iterate through file to find first and last position of number.
 	// *
 
@@ -82,7 +79,11 @@ int wmain(int argc, wchar_t** argv) {
 	double elapsed_time = std::chrono::duration<double, std::milli>(t_end - t_start).count() / 1000;
 	std::wcout << "Time: " << std::fixed << elapsed_time << " sec" << std::endl;
 
+	// Close file.
+	stream.close();
+
 	system("pause");
+	return 0;
 }
 
 HistogramObject getBucket(std::ifstream& stream, double percentile, std::string cpu, double min, double max)
@@ -95,18 +96,20 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, std::string 
 	HistogramObject resultBucket;
 	std::vector<HistogramObject> buckets;		
 
-	long i = 0;
-	long numbersCount = 0;		
-	long numbersCountUnderMin = 0;
+	size_t i = 0;
+	size_t numbersCount = 0;
+	size_t numbersCountUnderMin = 0;
 
 	// Calculate step.
 	double step = std::abs(min / BUCKET_COUNT) + (max / BUCKET_COUNT);
+	double stepp1 = std::abs(min / BUCKET_COUNT);
+	double stepp2 = std::abs(max / BUCKET_COUNT);
 
 	double from = min;
 	double to = min + step;
 
 	// Create buckets and set range.
-	for (long i = 0; i < BUCKET_COUNT; i++)
+	for (size_t i = 0; i < BUCKET_COUNT; i++)
 	{
 		if (i == BUCKET_COUNT - 1) to = max;
 		HistogramObject object(from, to);
@@ -133,9 +136,9 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, std::string 
 			break;
 		}
 
-		long read = stream.gcount() / sizeof(double);
+		size_t readCount = stream.gcount() / sizeof(double);
 
-		for (long i = 0; i < read; i++)
+		for (size_t i = 0; i < readCount; i++)
 		{
 			double value = buffer[i];
 			// Check if double value is correct value.
@@ -144,13 +147,24 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, std::string 
 				// Check if value is in histogram range.
 				if (value <= max && value >= min)
 				{
+					// Fix for last bucket -> if value is = max, then it means it must be in the next bucket, because 
+					// ´we want <min, max) and we will throw away values = max when applying for last bucket.
+					int addition = 0;
+					if (value == max)
+					{
+						addition = 1;
+					}
+
 					// Get position using binary search.
-					long position = Utils::binarySearch(buckets, 0, BUCKET_COUNT - 1, value);
+					size_t position = Utils::binarySearch(buckets, 0, BUCKET_COUNT - 1, value);
 
 					// If position was found.
 					if (position != -1)
 					{
-						HistogramObject& bucket = buckets[position];
+						if (position == (BUCKET_COUNT - 1))
+							addition = 0;
+
+						HistogramObject& bucket = buckets[position + addition];
 						bucket.incrementFrequency();
 						bucket.setMinValueFile(value);
 						bucket.setMaxValueFile(value);
@@ -176,24 +190,42 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, std::string 
 	}
 
 	// Calculate position of desired bucket.
-	size_t calculatedPosition = std::ceil(percentile * numbersCount);
+	size_t calculatedPosition = std::floor(percentile * numbersCount);
 	size_t cumulativeFrequency = numbersCountUnderMin;
-	long position = 0;
-	long counter = 0;
+	size_t position = 0;
 
-	for (HistogramObject& bucket : buckets)
+	// If percentil is 100%.
+	if (calculatedPosition == numbersCount)
 	{
-		cumulativeFrequency += bucket.getFrequency();
-
-		if (cumulativeFrequency > calculatedPosition)
+		size_t position = BUCKET_COUNT - 1;
+		for (std::vector<HistogramObject>::reverse_iterator it = buckets.rbegin(); it != buckets.rend(); ++it)
 		{
-			break;
+			HistogramObject& obj = *it;
+			if (obj.getFrequency() > 0)
+			{
+				resultBucket = obj;
+				break;
+			}
+
+			position--;
+		}
+	}
+	else
+	{
+		for (HistogramObject& bucket : buckets)
+		{
+			cumulativeFrequency += bucket.getFrequency();
+
+			if (cumulativeFrequency > calculatedPosition)
+			{
+				break;
+			}
+
+			position++;
 		}
 
-		position++;
+		resultBucket = buckets[position];
 	}
-
-	resultBucket = buckets[position];	
 
 	return resultBucket;
 }
