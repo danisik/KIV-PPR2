@@ -25,7 +25,7 @@ int wmain(int argc, wchar_t** argv) {
 	- Program musí skonèit do 15 minut
 	*/
 	std::string filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3";
-	double percentile = (double)61 / (double)100;
+	double percentile = (double)44 / (double)100;
 	std::string cpu = "";
 
 	// Set first min and max.
@@ -72,8 +72,7 @@ int wmain(int argc, wchar_t** argv) {
 		}
 	}
 
-	// TODO: Iterate through file to find first and last position of number.
-	// *
+	// Iterate through file to find first and last position of number.
 	NUMBER_POSITION position;
 	position.firstOccurence = std::numeric_limits<size_t>::max();
 	position.lastOccurence = std::numeric_limits<size_t>::lowest();
@@ -281,15 +280,13 @@ bool getNumberPositions(std::ifstream& stream, double desiredValue, NUMBER_POSIT
 				{
 					if (position.firstOccurence >= counter)
 					{
-						// We want position in Bytes.
-						position.firstOccurence = counter * BYTE;
+						position.firstOccurence = counter;
 						firstOccurenceChanged = true;
 					}
 
 					if (position.lastOccurence <= counter)
-					{
-						// We want position in Bytes.
-						position.lastOccurence = counter * BYTE;
+					{					
+						position.lastOccurence = counter;
 						lastOccurenceChanged = true;
 					}
 				}
@@ -298,6 +295,10 @@ bool getNumberPositions(std::ifstream& stream, double desiredValue, NUMBER_POSIT
 			counter++;
 		}
 	}
+
+	// We want position in Bytes.
+	position.firstOccurence *= BYTE;
+	position.lastOccurence *= BYTE;
 
 	// If occurences were changed, return true.
 	if (firstOccurenceChanged && lastOccurenceChanged)
