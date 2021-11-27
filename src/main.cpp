@@ -25,7 +25,7 @@ int wmain(int argc, wchar_t** argv) {
 	- Program musí skonèit do 15 minut
 	*/
 	std::string filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3";
-	double percentile = (double)42 / (double)100;
+	double percentile = (double)61 / (double)100;
 	std::string cpu = "";
 
 	// Set first min and max.
@@ -74,9 +74,20 @@ int wmain(int argc, wchar_t** argv) {
 
 	// TODO: Iterate through file to find first and last position of number.
 	// *
+	NUMBER_POSITION position;
+	position.firstOccurence = std::numeric_limits<size_t>::max();
+	position.lastOccurence = std::numeric_limits<size_t>::lowest();
+	bool found = getNumberPositions(stream, min, position);
+
+	std::wcout << std::endl;
+	std::wcout << "Position found: " << found << std::endl;
+	std::wcout << "First position: " << position.firstOccurence << std::endl;
+	std::wcout << "Last position: " << position.lastOccurence << std::endl;
+
 
 	auto t_end = std::chrono::high_resolution_clock::now();
 	double elapsed_time = std::chrono::duration<double, std::milli>(t_end - t_start).count() / 1000;
+	std::wcout << std::endl;
 	std::wcout << "Time: " << std::fixed << elapsed_time << " sec" << std::endl;
 
 	// Close file.
@@ -228,4 +239,69 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, std::string 
 	}
 
 	return resultBucket;
+}
+
+bool getNumberPositions(std::ifstream& stream, double desiredValue, NUMBER_POSITION& position)
+{
+	bool firstOccurenceChanged = false;
+	bool lastOccurenceChanged = false;
+	size_t counter = 0;
+
+	// Seek stream to start.
+	stream.clear();
+	stream.seekg(0);
+
+	uint64_t offset = 0;	
+
+	// Read file.
+	while (true)
+	{
+		// Read block of data.
+		stream.seekg(offset * BLOCKSIZE);
+		stream.read(reinterpret_cast<char*>(buffer), BLOCKSIZE);
+
+		offset++;
+
+		// If nothing was read.
+		if (stream.gcount() == 0)
+		{
+			break;
+		}
+
+		size_t readCount = stream.gcount() / sizeof(double);
+
+		for (size_t i = 0; i < readCount; i++)
+		{
+			double value = buffer[i];
+			
+			// Check if double value is correct value.
+			if (Utils::isCorrectValue(value))
+			{
+				if (value == desiredValue)
+				{
+					if (position.firstOccurence >= counter)
+					{
+						// We want position in Bytes.
+						position.firstOccurence = counter * BYTE;
+						firstOccurenceChanged = true;
+					}
+
+					if (position.lastOccurence <= counter)
+					{
+						// We want position in Bytes.
+						position.lastOccurence = counter * BYTE;
+						lastOccurenceChanged = true;
+					}
+				}
+			}
+
+			counter++;
+		}
+	}
+
+	// If occurences were changed, return true.
+	if (firstOccurenceChanged && lastOccurenceChanged)
+		return true;
+
+	return false;
 }
