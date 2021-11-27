@@ -39,3 +39,13 @@ size_t Utils::binarySearch(std::vector<HistogramObject>& buckets, size_t left, s
     // We reach here when element is not present in array
     return -1;
 }
+
+std::string Utils::toLower(std::string& str)
+{
+    for (auto& c : str)
+    {
+        c = tolower(c);
+    }
+
+    return str;
+}
