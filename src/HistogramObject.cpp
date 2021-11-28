@@ -5,8 +5,8 @@ HistogramObject::HistogramObject(double pMin, double pMax)
 	this->min = pMin;
 	this->max = pMax;
 	this->frequency = 0;
-	this->minValueFile = 0;
-	this->maxValueFile = 0;
+	this->minValueFile = std::numeric_limits<double>::max();
+	this->maxValueFile = std::numeric_limits<double>::lowest();
 }
 
 HistogramObject::HistogramObject()
@@ -14,8 +14,8 @@ HistogramObject::HistogramObject()
 	this->min = 0;
 	this->max = 0;
 	this->frequency = 0;
-	this->minValueFile = 0;
-	this->maxValueFile = 0;
+	this->minValueFile = std::numeric_limits<double>::max();
+	this->maxValueFile = std::numeric_limits<double>::lowest();
 }
 
 void HistogramObject::incrementFrequency()
@@ -62,4 +62,9 @@ void HistogramObject::setMaxValueFile(double pMax)
 	{
 		this->maxValueFile = pMax;
 	}
+}
+
+void HistogramObject::addFrequency(size_t frequency)
+{
+	this->frequency += frequency;
 }

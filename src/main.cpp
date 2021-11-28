@@ -31,11 +31,45 @@ int wmain(int argc, wchar_t** argv) {
 			Jiné sekvence budete ignorovat. Všechny nuly jsou si stejnì rovné.
 		- Pozice v souboru vypisujte v bytech, tj. indexováno od nuly.
 		- Hexadecimální èíslo vypište napø. pomocí std::hexfloat.
+
+
+		TODO: OpenCL CUDA https://medium.com/@pratikone/opencl-on-visual-studio-configuration-tutorial-for-the-confused-3ec1c2b5f0ca
 	*/
-	std::string filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3";
-	double percentile = (double)0 / (double)100;
-	std::string processor = "single";
+
+	// Check if there is 3 arguments.
+	if (argc != 4)
+	{
+		std::wcout << "Invalid number of arguments" << std::endl;
+		return 1;
+	}
+
+	// File path argument.
+	std::wstring filePathWS(argv[1]);
+	std::string filePath;
+
+	std::transform(filePathWS.begin(), filePathWS.end(), std::back_inserter(filePath), [](wchar_t c) {
+		return (char)c;
+	});	
+
+	// Percentile argument.
+	wchar_t* stopwcs;
+	double percentile = wcstod(argv[2], &stopwcs) / 100;
+
+	// Processor argument.
+	std::wstring processorWS(argv[3]);
+	std::string processor;
+
+	std::transform(processorWS.begin(), processorWS.end(), std::back_inserter(processor), [](wchar_t c) {
+		return (char)c;
+	});
+
+	// To be sure, lower all characters in processor variable.
 	std::string processorLower = Utils::toLower(processor);
+
+	// Just for testing purposes.
+	filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\data.iso";
+	percentile = (double)0 / (double)100;
+	processor = "smp";	
 
 	// Set first min and max.
 	double min = std::numeric_limits<double>::lowest();
@@ -87,6 +121,7 @@ int wmain(int argc, wchar_t** argv) {
 		// If bucket is represented as single number, then we found what we want.
 		if (min == max)
 		{
+			std::wcout << "Processor: " << processor.c_str() << std::endl;
 			std::wcout << "Percentile: " << percentile << std::endl;
 			std::wcout << "Percentile %: " << percentile * 100 << std::endl;
 			std::wcout << "Cycles: " << cycles << std::endl;
@@ -160,50 +195,15 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, double min, 
 		}
 		size_t readCount = stream.gcount() / sizeof(double);
 
-
+		// Process data block -> find values + count numbers.
 		COUNTER_OBJECT counterObj = processDataBlock(buckets, buffer, readCount, min, max);
 
 		numbersCount += counterObj.numbersCount;
 		numbersCountUnderMin += counterObj.numbersCountUnderMin;
 	}
 
-	// Calculate position of desired bucket.
-	size_t calculatedPosition = (size_t)std::floor(percentile * numbersCount);
-	size_t cumulativeFrequency = numbersCountUnderMin;
-	size_t position = 0;
-
-	// If percentil is 100%.
-	if (calculatedPosition == numbersCount)
-	{
-		size_t position = BUCKET_COUNT - 1;
-		for (std::vector<HistogramObject>::reverse_iterator it = buckets.rbegin(); it != buckets.rend(); ++it)
-		{
-			HistogramObject& obj = *it;
-			if (obj.getFrequency() > 0)
-			{
-				resultBucket = obj;
-				break;
-			}
-
-			position--;
-		}
-	}
-	else
-	{
-		for (HistogramObject& bucket : buckets)
-		{
-			cumulativeFrequency += bucket.getFrequency();
-
-			if (cumulativeFrequency > calculatedPosition)
-			{
-				break;
-			}
-
-			position++;
-		}
-
-		resultBucket = buckets[position];
-	}
+	// Find bucket based on percentile.
+	resultBucket = findBucket(buckets, numbersCount, numbersCountUnderMin, percentile);
 
 	// Delete buffer from heap.
 	delete[] buffer;
@@ -212,40 +212,30 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, double min, 
 }
 
 HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double min, double max)
-{	
-	/*
-	std::vector<std::thread> threads;
-
-    for (unsigned int i = 0; i < 10; i++)
-    {
-        threads.push_back(std::thread(neural_network_training, i, measured_data, minute_prediction));
-    }
-
-    for (std::thread& th : threads)
-    {
-        th.join();
-    }
-	*/
-	// TODO: stopThreads -> použít k ukonèení vlákna
+{
+	queue.RestartShutdown();
 
 	// Seek stream to start.
 	stream.clear();
 	stream.seekg(0);
+		
+	// Create threads.
+	std::vector<std::thread> threads;
+	std::vector<HISTOGRAM> threadHistograms;
 
-	// Init return vals.
-	HistogramObject resultBucket;
-	std::vector<HistogramObject> buckets = createBuckets(min, max);
+	for (unsigned int i = 0; i < THREADS_COUNT; i++)
+	{
+		threadHistograms.emplace_back();
+	}
 
-	size_t i = 0;
-	size_t numbersCount = 0;
-	size_t numbersCountUnderMin = 0;
-
-	// TODO: create threads
-	// createSubHistogram(min, max); 
-	//
+	// Create histograms and assign them to threads.
+	for (unsigned int i = 0; i < THREADS_COUNT; i++)
+	{
+		threads.emplace_back(createSubHistogram, std::ref(threadHistograms[i]), min, max);
+	}
 
 	uint64_t offset = 0;
-
+	
 	// Read file.
 	while (true)
 	{
@@ -266,59 +256,55 @@ HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double mi
 		size_t readCount = stream.gcount() / sizeof(double);
 
 		// Create buffer object.
-		BUFFER_OBJECT obj;
-		obj.buffer = buffer;
-		obj.readCount = readCount;
+		BUFFER_OBJECT bufferObject;
+		bufferObject.buffer = buffer;
+		bufferObject.readCount = readCount;
 
-		COUNTER_OBJECT counterObj = processDataBlock(buckets, buffer, readCount, min, max);
-
-		numbersCount += counterObj.numbersCount;
-		numbersCountUnderMin += counterObj.numbersCountUnderMin;
-
-		// Push it to vector.
-		bufferVector.push_back(obj);
+		// Push buffer with data to queue.
+		queue.Push(bufferObject);
 	}
 
-	// TODO: barier for threads
-	//
+	// Request shutdown for all threads
+	queue.RequestShutdown();
 
-	// Calculate position of desired bucket.
-	size_t calculatedPosition = std::floor(percentile * numbersCount);
-	size_t cumulativeFrequency = numbersCountUnderMin;
-	size_t position = 0;
-
-	// If percentil is 100%.
-	if (calculatedPosition == numbersCount)
+	// Wait for all threads to end.
+	for (std::thread& th : threads)
 	{
-		size_t position = BUCKET_COUNT - 1;
-		for (std::vector<HistogramObject>::reverse_iterator it = buckets.rbegin(); it != buckets.rend(); ++it)
-		{
-			HistogramObject& obj = *it;
-			if (obj.getFrequency() > 0)
-			{
-				resultBucket = obj;
-				break;
-			}
+		th.join();
+	}
 
-			position--;
+	HistogramObject resultBucket;
+	std::vector<HistogramObject> buckets = createBuckets(min, max);
+
+	size_t numbersCount = 0;
+	size_t numbersCountUnderMin = 0;
+	
+	// Merge histograms.
+	for (int j = 0; j < THREADS_COUNT; j++)
+	{
+		HISTOGRAM& threadHistogram = threadHistograms[j];
+
+		// Increment counters.
+		numbersCount += threadHistogram.numbersCount;
+		numbersCountUnderMin += threadHistogram.numbersCountUnderMin;
+
+		std::vector<HistogramObject> threadBuckets = threadHistogram.buckets;
+		
+		for (int i = 0; i < buckets.size(); i++)
+		{
+			// Get bucket from main histogram and from thread histogram.
+			HistogramObject& mainBucket = buckets[i];
+			HistogramObject& threadBucket = threadBuckets[i];
+
+			// Set / Increment values.
+			mainBucket.addFrequency(threadBucket.getFrequency());
+			mainBucket.setMaxValueFile(threadBucket.getMaxValueFile());
+			mainBucket.setMinValueFile(threadBucket.getMinValueFile());
 		}
 	}
-	else
-	{
-		for (HistogramObject& bucket : buckets)
-		{
-			cumulativeFrequency += bucket.getFrequency();
 
-			if (cumulativeFrequency > calculatedPosition)
-			{
-				break;
-			}
-
-			position++;
-		}
-
-		resultBucket = buckets[position];
-	}
+	// Find bucket based on percentile.
+	resultBucket = findBucket(buckets, numbersCount, numbersCountUnderMin, percentile);
 
 	return resultBucket;
 }
@@ -428,6 +414,7 @@ COUNTER_OBJECT processDataBlock(std::vector<HistogramObject>& buckets, double* b
 	for (size_t i = 0; i < readCount; i++)
 	{
 		double value = buffer[i];
+
 		// Check if double value is correct value.
 		if (Utils::isCorrectValue(value))
 		{
@@ -478,8 +465,82 @@ COUNTER_OBJECT processDataBlock(std::vector<HistogramObject>& buckets, double* b
 	return obj;
 }
 
-HISTOGRAM createSubHistogram(double min, double max)
+HistogramObject findBucket(std::vector<HistogramObject> buckets, size_t numbersCount, size_t numbersCountUnderMin, double percentile)
 {
-	HISTOGRAM obj;
-	return obj;
+	HistogramObject resultBucket;
+
+	// Calculate position of desired bucket.
+	size_t calculatedPosition = (size_t)std::floor(percentile * numbersCount);
+	size_t cumulativeFrequency = numbersCountUnderMin;
+	size_t position = 0;
+
+	// If percentil is 100%.
+	if (calculatedPosition == numbersCount)
+	{
+		size_t position = BUCKET_COUNT - 1;
+		for (std::vector<HistogramObject>::reverse_iterator it = buckets.rbegin(); it != buckets.rend(); ++it)
+		{
+			HistogramObject& obj = *it;
+			if (obj.getFrequency() > 0)
+			{
+				resultBucket = obj;
+				break;
+			}
+
+			position--;
+		}
+	}
+	else
+	{
+		for (HistogramObject& bucket : buckets)
+		{
+			cumulativeFrequency += bucket.getFrequency();
+
+			if (cumulativeFrequency > calculatedPosition)
+			{
+				break;
+			}
+
+			position++;
+		}
+
+		resultBucket = buckets[position];
+	}
+
+	return resultBucket;
+}
+
+void createSubHistogram(HISTOGRAM& histogram, double min, double max)
+{
+	std::vector<HistogramObject> buckets = createBuckets(min, max);
+	size_t numbersCount = 0;
+	size_t numbersCountUnderMin = 0;
+
+	while(true) 
+	{
+		// Get block of data and process it.
+		BUFFER_OBJECT buffer;
+		bool popped = queue.Pop(buffer);
+
+		// If there is no free block to process and reading file was ended, end thread.
+		if (!popped)
+		{
+			break;
+		}
+		else
+		{
+			// Process data block -> find values + count numbers.
+			COUNTER_OBJECT counterObj = processDataBlock(buckets, buffer.buffer, buffer.readCount, min, max);
+
+			numbersCount += counterObj.numbersCount;
+			numbersCountUnderMin += counterObj.numbersCountUnderMin;
+
+			delete[] buffer.buffer;
+		}
+	}
+
+	// Assign buckets and counters to histogram struct.
+	histogram.buckets = buckets;
+	histogram.numbersCount = numbersCount;
+	histogram.numbersCountUnderMin = numbersCountUnderMin;
 }

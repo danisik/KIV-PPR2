@@ -1,3 +1,5 @@
+#include <limits>
+
 #pragma once
 class HistogramObject
 {
@@ -19,5 +21,6 @@ class HistogramObject
 		double getMaxValueFile();
 		void setMinValueFile(double pMin);
 		void setMaxValueFile(double pMax);
+		void addFrequency(size_t frequency);
 };
 
