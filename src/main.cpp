@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "main.h"
 
 /// <summary>
@@ -45,8 +47,12 @@ int wmain(int argc, wchar_t** argv) {
 	// Check if there is 3 arguments.
 	if (argc != 4)
 	{
-		std::wcout << "Invalid number of arguments" << std::endl;
-		return 1;
+		std::wcout << "Invalid number of arguments - need 3 arguments." << std::endl;
+		std::wcout << "Usage: pprsolver.exe <path_to_binary_file> <percentile> <processor>" << std::endl;
+		std::wcout << "<path_to_binary_file> - Full or relative path to binary file." << std::endl;
+		std::wcout << "<percentile> - Percentile value in %. Value between 0-100." << std::endl;
+		std::wcout << "<processor> - Used processor. Available processors: single, SMP, OpenCL." << std::endl;
+		return EXIT_CODE::INVALID_ARGS;
 	}
 
 	// File path argument.
@@ -61,6 +67,17 @@ int wmain(int argc, wchar_t** argv) {
 	wchar_t* stopwcs;
 	double percentile = wcstod(argv[2], &stopwcs) / 100;
 
+	if (percentile < 0)
+	{
+		std::wcout << "Percentile too low, it must be between 0 and 100." << std::endl;
+		return EXIT_CODE::INVALID_ARGS;
+	}
+	else if (percentile > 100)
+	{
+		std::wcout << "Percentile too high, it must be between 0 and 100." << std::endl;
+		return EXIT_CODE::INVALID_ARGS;
+	}
+
 	// Processor argument.
 	std::wstring processorWS(argv[3]);
 	std::string processor;
@@ -73,9 +90,9 @@ int wmain(int argc, wchar_t** argv) {
 	std::string processorLower = Utils::toLower(processor);
 
 	// Just for testing purposes.
-	filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\data.iso";
-	percentile = (double)0 / (double)100;
-	processor = "smp";	
+	//filePath = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\data.iso";
+	//percentile = (double)1 / (double)100;
+	//processor = "smp";	
 
 	// Set first min and max.
 	double min = std::numeric_limits<double>::lowest();
@@ -90,9 +107,8 @@ int wmain(int argc, wchar_t** argv) {
 
 	if (!(stream && stream.is_open()))
 	{
-		std::wcout << "file not exists" << std::endl;
-		system("pause");
-		return 1;
+		std::wcout << "Binary file did not exists, please provide valid path to file." << std::endl;
+		return EXIT_CODE::INVALID_ARGS;
 	}
 
 	// Return buckets until only single number is presented.
@@ -106,7 +122,7 @@ int wmain(int argc, wchar_t** argv) {
 		{
 			resultBucket = getBucketSMP(stream, percentile, min, max);
 		}
-		else if (processor == "mpi")
+		else if (processor == "opencl")
 		{
 			// TODO: in progress.
 			break;
@@ -114,9 +130,8 @@ int wmain(int argc, wchar_t** argv) {
 		else
 		{
 			std::cout << "Invalid processor type - " << processor << std::endl;
-			std::cout << "Allowed values: single, SMP, MPI" << std::endl;
-			system("pause");
-			return 1;
+			std::cout << "Allowed values: single, SMP, OpenCL" << std::endl;
+			return EXIT_CODE::INVALID_ARGS;
 		}
 
 		// Get minimum found value in file for bucket.
@@ -165,7 +180,7 @@ int wmain(int argc, wchar_t** argv) {
 	stream.close();
 
 	system("pause");
-	return 0;
+	return EXIT_CODE::SUCCESS;
 }
 
 /// <summary>
@@ -179,7 +194,7 @@ int wmain(int argc, wchar_t** argv) {
 HistogramObject getBucket(std::ifstream& stream, double percentile, double min, double max)
 {
 	// Create buffer on heap, because it is too large to save on stack.
-	double* buffer = new double[BLOCKSIZE];
+	double* buffer = new double[BLOCKSIZE / sizeof(double)];
 
 	// Seek stream to start.
 	stream.clear();
@@ -266,7 +281,7 @@ HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double mi
 	while (true)
 	{
 		// Create buffer on heap, because it is too large to save on stack.
-		double* buffer = new double[BLOCKSIZE];
+		double* buffer = new double[BLOCKSIZE / sizeof(double)];
 
 		// Read block of data.
 		stream.seekg(offset * BLOCKSIZE);
@@ -277,6 +292,7 @@ HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double mi
 		// If nothing was read.
 		if (stream.gcount() == 0)
 		{
+			delete[] buffer;
 			break;
 		}
 		size_t readCount = stream.gcount() / sizeof(double);
@@ -345,7 +361,7 @@ HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double mi
 bool getNumberPositions(std::ifstream& stream, double desiredValue, NUMBER_POSITION& position)
 {
 	// Create buffer on heap, because it is too large to save on stack.
-	double* buffer = new double[BLOCKSIZE];
+	double* buffer = new double[BLOCKSIZE / sizeof(double)];
 
 	bool firstOccurenceChanged = false;
 	bool lastOccurenceChanged = false;

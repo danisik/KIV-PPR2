@@ -10,6 +10,18 @@
 #include "Utils.h"
 #include "Queue.h"
 
+/// <summary>
+/// Enum for return codes.
+/// </summary>
+enum EXIT_CODE : size_t
+{
+	// Everythins is ok.
+    SUCCESS = 0x00,	
+
+	// Invalid arguments provided
+    INVALID_ARGS = 0x01
+};
+
 // Structs.
 
 /// <summary>
@@ -52,10 +64,10 @@ static constexpr const unsigned int BYTE = 8;
 static constexpr const unsigned int MB = 1024 * 1024;
 
 // Data buffer size.
-static constexpr const long BLOCKSIZE = MB / sizeof(double);
+static constexpr const long BLOCKSIZE = 1 * MB / sizeof(double);
 
 // Number representing how many buckets must be created in single histogram.
-static constexpr const long BUCKET_COUNT = MB / sizeof(HistogramObject);
+static constexpr const long BUCKET_COUNT = 0.6 * MB / sizeof(HistogramObject);
 
 // Queue for SMP.
 Queue queue;
