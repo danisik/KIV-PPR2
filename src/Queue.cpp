@@ -1,9 +1,16 @@
 #include "Queue.h"
 
+/// <summary>
+/// Constructor.
+/// </summary>
 Queue::Queue()
 {
 }
 
+/// <summary>
+/// Push data buffer to queue and notify one thread that data block is free to use.
+/// </summary>
+/// <param name="item">Data buffer.</param>
 void Queue::Push(const BUFFER_OBJECT& item)
 {
     {
@@ -13,6 +20,9 @@ void Queue::Push(const BUFFER_OBJECT& item)
     cond.notify_one();
 }
 
+/// <summary>
+/// Request shutdown for all threads, if file reading ends.
+/// </summary>
 void Queue::RequestShutdown() 
 {
     {
@@ -22,10 +32,15 @@ void Queue::RequestShutdown()
     cond.notify_all();
 }
 
+/// <summary>
+/// Pop last data buffer.
+/// </summary>
+/// <param name="item">Reference to data buffer</param>
+/// <returns>True if getting data buffer from queue was successful, false if not.</returns>
 bool Queue::Pop(BUFFER_OBJECT& item) 
 {
     std::unique_lock<std::mutex> lock(mutex);
-    for (;;) 
+    while (true) 
     {
         if (queue.empty())
         {
@@ -38,13 +53,22 @@ bool Queue::Pop(BUFFER_OBJECT& item)
         {
             break;
         }
+
+        // If queue is empty and shutdown was not yet called, then wait.
         cond.wait(lock);
     }
+
+    // Get data buffer from queue.
     item = std::move(queue.front());
+
+    // Remove it from queue.
     queue.pop();
     return true;
 }
 
+/// <summary>
+/// Restart variable representing shutdown.
+/// </summary>
 void Queue::RestartShutdown()
 {
     shutdown = false;

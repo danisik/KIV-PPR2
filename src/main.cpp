@@ -1,5 +1,11 @@
 #include "main.h"
 
+/// <summary>
+/// Main method.
+/// </summary>
+/// <param name="argc">Arguments count</param>
+/// <param name="argv">Arguments buffer</param>
+/// <returns>Exit code</returns>
 int wmain(int argc, wchar_t** argv) {
 
 	/*
@@ -113,7 +119,9 @@ int wmain(int argc, wchar_t** argv) {
 			return 1;
 		}
 
+		// Get minimum found value in file for bucket.
 		min = resultBucket.getMinValueFile();
+		// Get maximum found value in file for bucket.
 		max = resultBucket.getMaxValueFile();
 
 		cycles++;
@@ -160,6 +168,14 @@ int wmain(int argc, wchar_t** argv) {
 	return 0;
 }
 
+/// <summary>
+/// Get bucket based on percentile for single CPU.
+/// </summary>
+/// <param name="stream">File stream</param>
+/// <param name="percentile">Percentile</param>
+/// <param name="min">Min value for histogram</param>
+/// <param name="max">Max value for histogram</param>
+/// <returns>Bucket</returns>
 HistogramObject getBucket(std::ifstream& stream, double percentile, double min, double max)
 {
 	// Create buffer on heap, because it is too large to save on stack.
@@ -211,8 +227,17 @@ HistogramObject getBucket(std::ifstream& stream, double percentile, double min, 
 	return resultBucket;
 }
 
+/// <summary>
+/// Get bucket based on percentile for SMP.
+/// </summary>
+/// <param name="stream">File stream</param>
+/// <param name="percentile">Percentile</param>
+/// <param name="min">Minimum allowed value for histogram</param>
+/// <param name="max">Maximum allowed value for histogram</param>
+/// <returns>Bucket</returns>
 HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double min, double max)
 {
+	// Reset queue shutdown variable.
 	queue.RestartShutdown();
 
 	// Seek stream to start.
@@ -223,6 +248,7 @@ HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double mi
 	std::vector<std::thread> threads;
 	std::vector<HISTOGRAM> threadHistograms;
 
+	// Create histograms for threads. Must be done before creating threads, because there was some problem with references.
 	for (unsigned int i = 0; i < THREADS_COUNT; i++)
 	{
 		threadHistograms.emplace_back();
@@ -309,6 +335,13 @@ HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double mi
 	return resultBucket;
 }
 
+/// <summary>
+/// Get first and last position of value.
+/// </summary>
+/// <param name="stream">File stream.</param>
+/// <param name="desiredValue">Value to be found in file.</param>
+/// <param name="position">Reference to object representing first and last position.</param>
+/// <returns>True if getting positions was successful, false if not.</returns>
 bool getNumberPositions(std::ifstream& stream, double desiredValue, NUMBER_POSITION& position)
 {
 	// Create buffer on heap, because it is too large to save on stack.
@@ -382,6 +415,12 @@ bool getNumberPositions(std::ifstream& stream, double desiredValue, NUMBER_POSIT
 	return false;
 }
 
+/// <summary>
+/// Create histogram (vector with buckets).
+/// </summary>
+/// <param name="min">Minimum allowed value of histogram.</param>
+/// <param name="max">Maximum allowed value of histogram.</param>
+/// <returns>Vector with buckets.</returns>
 std::vector<HistogramObject> createBuckets(double min, double max)
 {
 	std::vector<HistogramObject> buckets;
@@ -407,6 +446,15 @@ std::vector<HistogramObject> createBuckets(double min, double max)
 	return buckets;
 }
 
+/// <summary>
+/// Process single data block -> get value, get position of bucket and assing value to bucket.
+/// </summary>
+/// <param name="buckets">Histogram.</param>
+/// <param name="buffer">Data buffer.</param>
+/// <param name="readCount">Data read count.</param>
+/// <param name="min">Minimum allowed value of histogram.</param>
+/// <param name="max">Maximum allowed value of histogram.</param>
+/// <returns>Object representing number counts processed.</returns>
 COUNTER_OBJECT processDataBlock(std::vector<HistogramObject>& buckets, double* buffer, size_t readCount, double min, double max)
 {
 	COUNTER_OBJECT obj;
@@ -465,18 +513,29 @@ COUNTER_OBJECT processDataBlock(std::vector<HistogramObject>& buckets, double* b
 	return obj;
 }
 
+/// <summary>
+/// Find bucket based on percentile.
+/// </summary>
+/// <param name="buckets">Histogram.</param>
+/// <param name="numbersCount">Numbers count in histogram.</param>
+/// <param name="numbersCountUnderMin">Numbers count under minimum of histogram.</param>
+/// <param name="percentile">Percentile.</param>
+/// <returns>Bucket.</returns>
 HistogramObject findBucket(std::vector<HistogramObject> buckets, size_t numbersCount, size_t numbersCountUnderMin, double percentile)
 {
 	HistogramObject resultBucket;
 
 	// Calculate position of desired bucket.
 	size_t calculatedPosition = (size_t)std::floor(percentile * numbersCount);
+
+	// Add numbers count which are under minimum of histogram to cumulative frequency.
 	size_t cumulativeFrequency = numbersCountUnderMin;
 	size_t position = 0;
 
 	// If percentil is 100%.
 	if (calculatedPosition == numbersCount)
 	{
+		// Reverse iterate through histogram - we need to find last bucket with frequency -> that is 100% of histogram.
 		size_t position = BUCKET_COUNT - 1;
 		for (std::vector<HistogramObject>::reverse_iterator it = buckets.rbegin(); it != buckets.rend(); ++it)
 		{
@@ -492,10 +551,13 @@ HistogramObject findBucket(std::vector<HistogramObject> buckets, size_t numbersC
 	}
 	else
 	{
+		// Iterate through every bucket.
 		for (HistogramObject& bucket : buckets)
 		{
+			// Add bucket frequency to cumulitave frequency.
 			cumulativeFrequency += bucket.getFrequency();
 
+			// Cumulative frequency must be more than calculatedPosition from percentile to actually find result bucket.
 			if (cumulativeFrequency > calculatedPosition)
 			{
 				break;
@@ -510,6 +572,12 @@ HistogramObject findBucket(std::vector<HistogramObject> buckets, size_t numbersC
 	return resultBucket;
 }
 
+/// <summary>
+/// Method for thread. Same as finding bucket when using single processor, but with less data.
+/// </summary>
+/// <param name="histogram">Histogram object.</param>
+/// <param name="min">Minimum allowed value of histogram.</param>
+/// <param name="max">Maximum allowed value of histogram.</param>
 void createSubHistogram(HISTOGRAM& histogram, double min, double max)
 {
 	std::vector<HistogramObject> buckets = createBuckets(min, max);

@@ -6,6 +6,9 @@
 #include "HistogramObject.h"
 
 #pragma once
+/// <summary>
+/// Class which contains usefull functions.
+/// </summary>
 class Utils
 {
 	public:

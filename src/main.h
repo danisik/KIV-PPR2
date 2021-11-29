@@ -11,18 +11,28 @@
 #include "Queue.h"
 
 // Structs.
+
+/// <summary>
+/// Struct representing first and last position of number.
+/// </summary>
 struct NUMBER_POSITION 
 {
 	size_t firstOccurence = 0;
 	size_t lastOccurence = 0;
 };
 
+/// <summary>
+/// Struct representing numbers count in histogram (+ numbers count under minimum value).
+/// </summary>
 struct COUNTER_OBJECT
 {
 	size_t numbersCount = 0;
 	size_t numbersCountUnderMin = 0;
 };
 
+/// <summary>
+/// Struct representing histogram (used in SMP).
+/// </summary>
 struct HISTOGRAM
 {
 	size_t numbersCount = 0;
@@ -31,13 +41,20 @@ struct HISTOGRAM
 };
 
 // Constants.
+
+// Number representing how many threads are created.
 static constexpr const unsigned int THREADS_COUNT = 10;
+
+// Max blocks to be available in queue.
 static constexpr const unsigned int MEMORY_BLOCKS_ALLOWED = 2 * THREADS_COUNT;
 
 static constexpr const unsigned int BYTE = 8;
 static constexpr const unsigned int MB = 1024 * 1024;
 
+// Data buffer size.
 static constexpr const long BLOCKSIZE = MB / sizeof(double);
+
+// Number representing how many buckets must be created in single histogram.
 static constexpr const long BUCKET_COUNT = MB / sizeof(HistogramObject);
 
 // Queue for SMP.

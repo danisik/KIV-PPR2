@@ -1,5 +1,10 @@
 #include "Utils.h"
 
+/// <summary>
+/// Check if value is correct.
+/// </summary>
+/// <param name="value">Value to be classified</param>
+/// <returns>True if value is correct, false if not.</returns>
 bool Utils::isCorrectValue(double value)
 {
 	switch (fpclassify(value))
@@ -16,6 +21,14 @@ bool Utils::isCorrectValue(double value)
 	}
 }
 
+/// <summary>
+/// Binary search on histogram to find position of bucket by value (between min and max of bucket).
+/// </summary>
+/// <param name="buckets">Histogram</param>
+/// <param name="left">Left index</param>
+/// <param name="right">Right index</param>
+/// <param name="value">Value to be found</param>
+/// <returns>Position if value was found in any bucket, -1 if not.</returns>
 size_t Utils::binarySearch(std::vector<HistogramObject>& buckets, size_t left, size_t right, double value)
 {
     if (right >= left) 
@@ -40,8 +53,14 @@ size_t Utils::binarySearch(std::vector<HistogramObject>& buckets, size_t left, s
     return -1;
 }
 
+/// <summary>
+/// Perform string tolower on specific string.
+/// </summary>
+/// <param name="str">String to be lowered.</param>
+/// <returns>Lowered string.</returns>
 std::string Utils::toLower(std::string& str)
 {
+    // Lower all characters in string.
     for (auto& c : str)
     {
         c = tolower(c);
