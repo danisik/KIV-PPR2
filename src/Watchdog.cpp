@@ -1,5 +1,9 @@
 #include "Watchdog.h"
 
+/// <summary>
+/// Constructor.
+/// </summary>
+/// <param name="p_interval">Interval</param>
 Watchdog::Watchdog(int p_interval)
 {
     interval = p_interval;
@@ -7,27 +11,42 @@ Watchdog::Watchdog(int p_interval)
     process_running = true;
 }
 
+/// <summary>
+/// Start watchdog.
+/// </summary>
 void Watchdog::start()
 {
     thread = std::thread(&Watchdog::loop, this);
 }
 
+/// <summary>
+/// End watchdog.
+/// </summary>
 void Watchdog::join()
 {
     stop();
     thread.join();
 }
 
+/// <summary>
+/// Stop watchdog.
+/// </summary>
 void Watchdog::stop()
 {
     process_running = false;
 }
 
+/// <summary>
+/// Reset current timer.
+/// </summary>
 void Watchdog::reset()
 {    
     timer = 0;
 }
 
+/// <summary>
+/// Thread body.
+/// </summary>
 void Watchdog::loop()
 {
     while (process_running)
