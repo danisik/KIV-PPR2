@@ -8,8 +8,11 @@
 #include <thread>
 #include <memory>
 #include <cstdlib>
+#include <thread>
+#include <atomic>
 #include <sstream>
 
+#include "Watchdog.h"
 #include "Utils.h"
 #include "Queue.h"
 
@@ -25,7 +28,10 @@ enum EXIT_CODE : size_t
     INVALID_ARGS = 0x01,
 
 	// Invalid file.
-	INVALID_FILE = 0x02
+	INVALID_FILE = 0x02,
+
+	// Calculation cycled.
+	CYCLED_CALCULATION = 0x03
 };
 
 // Structs.
@@ -78,6 +84,9 @@ static constexpr const long BUCKET_COUNT =  MB / sizeof(Histogram_Object);
 // Queue for SMP.
 Queue queue;
 
+// Watchdog thread.
+Watchdog watchdog(600);
+
 // Methods.
 int wmain(int argc, wchar_t** argv);
 Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min, double max);
@@ -88,7 +97,6 @@ bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_PO
 std::vector<Histogram_Object> create_buckets(double min, double max);
 COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double* buffer, size_t read_count, double min, double max);
 void create_sub_histogram(HISTOGRAM& histogram, double min, double max);
-
 
 
 

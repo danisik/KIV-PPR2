@@ -117,13 +117,12 @@ int wmain(int argc, wchar_t** argv)
 	// To be sure, lower all characters in processor variable.
 	std::string processor_lower = Utils::to_lower(processor);
 
-	// Just for testing purposes.
-	/*
-	file_path = "..\\party.mp3";
-	percentile = (double)40 / (double)100;
-	processor = "opencl";	
+	// Just for testing purposes.	
+	file_path = "..\\data.iso";
+	percentile = (double)1 / (double)100;
+	processor = "smp";	
 	processor_lower = Utils::to_lower(processor);
-	*/
+	
 
 	// Set first min and max.
 	double min = std::numeric_limits<double>::lowest();
@@ -142,6 +141,9 @@ int wmain(int argc, wchar_t** argv)
 		std::wcout << "Cannot open file: " << file_path.c_str() << std::endl;
 		return EXIT_CODE::INVALID_FILE;
 	}
+
+	// Create watchdog thread.
+	watchdog.start();
 
 	// Return buckets until only single number is presented.
 	while (true)
@@ -163,7 +165,22 @@ int wmain(int argc, wchar_t** argv)
 		{
 			std::cout << "Invalid processor type - " << processor << std::endl;
 			std::cout << "Allowed values: single, SMP, OpenCL" << std::endl;
+
+			// Wait for watchdog.
+			watchdog.join();
 			return EXIT_CODE::INVALID_ARGS;
+		}
+
+		// Check if calculation is cycled or not.
+		if (min == result_bucket.get_min_value_file() && max == result_bucket.get_max_value_file())
+		{
+			watchdog.stop();
+			std::cout << "Stopping program, calculation was cycled." << std::endl;
+			return EXIT_CODE::CYCLED_CALCULATION;
+		}
+		else
+		{
+			watchdog.reset();
 		}
 
 		// Get minimum found value in file for bucket.
@@ -218,6 +235,9 @@ int wmain(int argc, wchar_t** argv)
 	// Close file.
 	stream.close();
 
+	// Wait for watchdog.
+	watchdog.join();
+
 	system("pause");
 	return EXIT_CODE::SUCCESS;
 }
@@ -232,6 +252,7 @@ int wmain(int argc, wchar_t** argv)
 /// <returns>Bucket</returns>
 Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min, double max)
 {
+	watchdog.reset();
 	// Create buffer on heap, because it is too large to save on stack.
 	double* buffer = new double[BLOCK_SIZE / sizeof(double)];
 
@@ -249,6 +270,7 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 
 	uint64_t offset = 0;
 
+	watchdog.reset();
 	// Read file.
 	while (true)
 	{			
@@ -270,6 +292,8 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 
 		numbers_count += counter_obj.numbers_count;
 		numbers_count_under_min += counter_obj.numbers_count_under_min;
+
+		watchdog.reset();
 	}
 
 	// Find bucket based on percentile.
@@ -278,6 +302,7 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 	// Delete buffer from heap.
 	delete[] buffer;
 
+	watchdog.reset();
 	return result_bucket;
 }
 
@@ -291,6 +316,8 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 /// <returns>Bucket</returns>
 Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double min, double max)
 {
+	watchdog.reset();
+
 	// Reset queue shutdown variable.
 	queue.restart_shutdown();
 
@@ -310,10 +337,11 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 
 	// Create histograms and assign them to threads.
 	for (unsigned int i = 0; i < THREADS_COUNT; i++)
-	{
+	{		
 		threads.emplace_back(create_sub_histogram, std::ref(thread_histograms[i]), min, max);
 	}
 
+	watchdog.reset();
 	uint64_t offset = 0;
 	
 	// Read file.
@@ -343,6 +371,8 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 
 		// Push buffer with data to queue.
 		queue.push(buffer_object);
+
+		watchdog.reset();
 	}
 
 	// Request shutdown for all threads
@@ -360,6 +390,7 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 	size_t numbers_count = 0;
 	size_t numbers_count_under_min = 0;
 	
+	watchdog.reset();
 	// Merge histograms.
 	for (int j = 0; j < THREADS_COUNT; j++)
 	{
@@ -371,6 +402,7 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 
 		std::vector<Histogram_Object> thread_buckets = thread_histogram.buckets;
 		
+		watchdog.reset();
 		for (int i = 0; i < buckets.size(); i++)
 		{
 			// Get bucket from main histogram and from thread histogram.
@@ -387,6 +419,7 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 	// Find bucket based on percentile.
 	result_bucket = find_bucket(buckets, numbers_count, numbers_count_under_min, percentile);
 
+	watchdog.reset();
 	return result_bucket;
 }
 
@@ -412,6 +445,7 @@ Histogram_Object get_bucket_opencl(std::ifstream& stream, double percentile, dou
 /// <returns>True if getting positions was successful, false if not.</returns>
 bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_POSITION& position)
 {
+	watchdog.reset();
 	// Create buffer on heap, because it is too large to save on stack.
 	double* buffer = new double[BLOCK_SIZE / sizeof(double)];
 
@@ -442,6 +476,7 @@ bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_PO
 
 		size_t read_count = stream.gcount() / sizeof(double);
 
+		watchdog.reset();
 		for (size_t i = 0; i < read_count; i++)
 		{
 			double value = buffer[i];
@@ -476,6 +511,7 @@ bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_PO
 	// Delete buffer from heap.
 	delete[] buffer;
 
+	watchdog.reset();
 	// If occurences were changed, return true.
 	if (first_occurence_changed && last_occurence_changed)
 		return true;
@@ -529,6 +565,7 @@ COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double
 
 	for (size_t i = 0; i < read_count; i++)
 	{
+		watchdog.reset();
 		double value = buffer[i];
 
 		// Check if double value is correct value.
@@ -548,6 +585,7 @@ COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double
 				// Get position using binary search.
 				size_t position = Utils::binary_search(buckets, 0, BUCKET_COUNT - 1, value);
 
+				watchdog.reset();
 				// If position was found.
 				if (position != -1)
 				{
@@ -578,6 +616,7 @@ COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double
 		}
 	}
 
+	watchdog.reset();
 	return obj;
 }
 
@@ -591,6 +630,7 @@ COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double
 /// <returns>Bucket.</returns>
 Histogram_Object find_bucket(std::vector<Histogram_Object> buckets, size_t numbers_count, size_t numbers_count_under_min, double percentile)
 {
+	watchdog.reset();
 	Histogram_Object result_bucket;
 
 	// Calculate position of desired bucket.
@@ -622,6 +662,7 @@ Histogram_Object find_bucket(std::vector<Histogram_Object> buckets, size_t numbe
 		// Iterate through every bucket.
 		for (Histogram_Object& bucket : buckets)
 		{
+			watchdog.reset();
 			// Add bucket frequency to cumulitave frequency.
 			cumulative_frequency += bucket.get_frequency();
 
@@ -637,6 +678,7 @@ Histogram_Object find_bucket(std::vector<Histogram_Object> buckets, size_t numbe
 		result_bucket = buckets[position];
 	}
 
+	watchdog.reset();
 	return result_bucket;
 }
 
@@ -665,6 +707,7 @@ void create_sub_histogram(HISTOGRAM& histogram, double min, double max)
 		}
 		else
 		{
+			watchdog.reset();
 			// Process data block -> find values + count numbers.
 			COUNTER_OBJECT counter_obj = process_data_block(buckets, buffer.buffer, buffer.read_count, min, max);
 
@@ -679,4 +722,6 @@ void create_sub_histogram(HISTOGRAM& histogram, double min, double max)
 	histogram.buckets = buckets;
 	histogram.numbers_count = numbers_count;
 	histogram.numbers_count_under_min = numbers_count_under_min;
+
+	watchdog.reset();
 }
