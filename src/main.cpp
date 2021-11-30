@@ -103,6 +103,9 @@ int wmain(int argc, wchar_t** argv)
 		return EXIT_CODE::INVALID_ARGS;
 	}
 
+	// Work with 0-1 value.
+	percentile /= 100;
+
 	// Processor argument.
 	std::wstring processor_WS(argv[3]);
 	std::string processor;
@@ -115,9 +118,12 @@ int wmain(int argc, wchar_t** argv)
 	std::string processor_lower = Utils::to_lower(processor);
 
 	// Just for testing purposes.
+	/*
 	file_path = "..\\party.mp3";
 	percentile = (double)40 / (double)100;
-	processor = "single";	
+	processor = "opencl";	
+	processor_lower = Utils::to_lower(processor);
+	*/
 
 	// Set first min and max.
 	double min = std::numeric_limits<double>::lowest();
@@ -133,7 +139,7 @@ int wmain(int argc, wchar_t** argv)
 	// Check if file exists and stream is open.
 	if (!(stream && stream.is_open()))
 	{
-		std::wcout << "Cannot open file: " << std::endl;
+		std::wcout << "Cannot open file: " << file_path.c_str() << std::endl;
 		return EXIT_CODE::INVALID_FILE;
 	}
 
@@ -382,6 +388,19 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 	result_bucket = find_bucket(buckets, numbers_count, numbers_count_under_min, percentile);
 
 	return result_bucket;
+}
+
+/// <summary>
+/// Get bucket based on percentile for OpenCL.
+/// </summary>
+/// <param name="stream">File stream</param>
+/// <param name="percentile">Percentile</param>
+/// <param name="min">Minimum allowed value for histogram</param>
+/// <param name="max">Maximum allowed value for histogram</param>
+/// <returns>Bucket</returns>
+Histogram_Object get_bucket_opencl(std::ifstream& stream, double percentile, double min, double max)
+{
+
 }
 
 /// <summary>

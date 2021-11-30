@@ -83,6 +83,7 @@ int wmain(int argc, wchar_t** argv);
 Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min, double max);
 Histogram_Object find_bucket(std::vector<Histogram_Object> buckets, size_t numbers_count, size_t numbers_count_under_min, double percentile);
 Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double min, double max);
+Histogram_Object get_bucket_opencl(std::ifstream& stream, double percentile, double min, double max);
 bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_POSITION& position);
 std::vector<Histogram_Object> create_buckets(double min, double max);
 COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double* buffer, size_t read_count, double min, double max);
