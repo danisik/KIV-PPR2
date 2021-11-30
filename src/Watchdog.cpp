@@ -38,7 +38,7 @@ void Watchdog::loop()
         {
             process_running = false;
             std::cout << "No activity was registered in " << interval << " seconds. Aborting calculation." << std::endl;
-            std::abort;
+            std::abort();
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));

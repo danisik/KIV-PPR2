@@ -16,7 +16,7 @@ class Watchdog
 
     private:
         int interval;
-        unsigned int timer;
+        int timer;
         bool process_running;
         std::thread thread;
 
