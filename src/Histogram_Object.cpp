@@ -1,35 +1,35 @@
-#include "HistogramObject.h"
+#include "Histogram_Object.h"
 
 /// <summary>
 /// Constructor.
 /// </summary>
 /// <param name="pMin">Minimum value for bucket.</param>
 /// <param name="pMax">Maximum value for bucket.</param>
-HistogramObject::HistogramObject(double pMin, double pMax)
+Histogram_Object::Histogram_Object(double pMin, double pMax)
 {
 	this->min = pMin;
 	this->max = pMax;
 	this->frequency = 0;
-	this->minValueFile = std::numeric_limits<double>::max();
-	this->maxValueFile = std::numeric_limits<double>::lowest();
+	this->min_value_file = std::numeric_limits<double>::max();
+	this->max_value_file = std::numeric_limits<double>::lowest();
 }
 
 /// <summary>
 /// Constructor.
 /// </summary>
-HistogramObject::HistogramObject()
+Histogram_Object::Histogram_Object()
 {
 	this->min = 0;
 	this->max = 0;
 	this->frequency = 0;
-	this->minValueFile = std::numeric_limits<double>::max();
-	this->maxValueFile = std::numeric_limits<double>::lowest();
+	this->min_value_file = std::numeric_limits<double>::max();
+	this->max_value_file = std::numeric_limits<double>::lowest();
 }
 
 /// <summary>
 /// Increment frequency.
 /// </summary>
-void HistogramObject::incrementFrequency()
+void Histogram_Object::increment_frequency()
 {
 	this->frequency++;
 }
@@ -38,7 +38,7 @@ void HistogramObject::incrementFrequency()
 /// Get minimum allowed value for bucket.
 /// </summary>
 /// <returns>Minimum value.</returns>
-double HistogramObject::getMin()
+double Histogram_Object::get_min()
 {
 	return this->min;
 }
@@ -47,7 +47,7 @@ double HistogramObject::getMin()
 /// Get maximum allowed value for bucket.
 /// </summary>
 /// <returns>Maximum value</returns>
-double HistogramObject::getMax()
+double Histogram_Object::get_max()
 {
 	return this->max;
 }
@@ -56,7 +56,7 @@ double HistogramObject::getMax()
 /// Get number count for this bucket.
 /// </summary>
 /// <returns>Number count</returns>
-size_t HistogramObject::getFrequency()
+size_t Histogram_Object::get_frequency()
 {
 	return this->frequency;
 }
@@ -65,29 +65,29 @@ size_t HistogramObject::getFrequency()
 /// Get minimum value found in file for this bucket.
 /// </summary>
 /// <returns>Minimum value found in file</returns>
-double HistogramObject::getMinValueFile()
+double Histogram_Object::get_min_value_file()
 {
-	return this->minValueFile;
+	return this->min_value_file;
 }
 
 /// <summary>
 /// Get maximum value found in file for this bucket.
 /// </summary>
 /// <returns>Maximum value found in file</returns>
-double HistogramObject::getMaxValueFile()
+double Histogram_Object::get_max_value_file()
 {
-	return this->maxValueFile;
+	return this->max_value_file;
 }
 
 /// <summary>
 /// Try to set minimum value in file for this bucket.
 /// </summary>
 /// <param name="pMin">Currently found value in file.</param>
-void HistogramObject::setMinValueFile(double pMin)
+void Histogram_Object::set_min_value_file(double pMin)
 {
-	if (this->minValueFile == 0 || this->minValueFile > pMin)
+	if (this->min_value_file == 0 || this->min_value_file > pMin)
 	{
-		this->minValueFile = pMin;
+		this->min_value_file = pMin;
 	}
 }
 
@@ -95,11 +95,11 @@ void HistogramObject::setMinValueFile(double pMin)
 /// Try to set maximum value in file for this bucket.
 /// </summary>
 /// <param name="pMax">Currently found value in file.</param>
-void HistogramObject::setMaxValueFile(double pMax)
+void Histogram_Object::set_max_value_file(double pMax)
 {
-	if (this->maxValueFile == 0 || this->maxValueFile < pMax)
+	if (this->max_value_file == 0 || this->max_value_file < pMax)
 	{
-		this->maxValueFile = pMax;
+		this->max_value_file = pMax;
 	}
 }
 
@@ -107,7 +107,7 @@ void HistogramObject::setMaxValueFile(double pMax)
 /// Add frequency to current bucket frequency (using when merging histograms).
 /// </summary>
 /// <param name="frequency">Frequency.</param>
-void HistogramObject::addFrequency(size_t frequency)
+void Histogram_Object::add_frequency(size_t frequency)
 {
 	this->frequency += frequency;
 }

@@ -11,7 +11,7 @@ Queue::Queue()
 /// Push data buffer to queue and notify one thread that data block is free to use.
 /// </summary>
 /// <param name="item">Data buffer.</param>
-void Queue::Push(const BUFFER_OBJECT& item)
+void Queue::push(const BUFFER_OBJECT& item)
 {
     {
         std::unique_lock<std::mutex> lock(mutex);
@@ -23,7 +23,7 @@ void Queue::Push(const BUFFER_OBJECT& item)
 /// <summary>
 /// Request shutdown for all threads, if file reading ends.
 /// </summary>
-void Queue::RequestShutdown() 
+void Queue::request_shutdown() 
 {
     {
         std::unique_lock<std::mutex> lock(mutex);
@@ -37,7 +37,7 @@ void Queue::RequestShutdown()
 /// </summary>
 /// <param name="item">Reference to data buffer</param>
 /// <returns>True if getting data buffer from queue was successful, false if not.</returns>
-bool Queue::Pop(BUFFER_OBJECT& item) 
+bool Queue::pop(BUFFER_OBJECT& item) 
 {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) 
@@ -69,7 +69,7 @@ bool Queue::Pop(BUFFER_OBJECT& item)
 /// <summary>
 /// Restart variable representing shutdown.
 /// </summary>
-void Queue::RestartShutdown()
+void Queue::restart_shutdown()
 {
     shutdown = false;
 }

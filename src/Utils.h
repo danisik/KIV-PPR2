@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <vector>
 
-#include "HistogramObject.h"
+#include "Histogram_Object.h"
 
 #pragma once
 /// <summary>
@@ -12,8 +12,8 @@
 class Utils
 {
 	public:
-		static bool isCorrectValue(double value);
-		static size_t binarySearch(std::vector<HistogramObject>& buckets, size_t l, size_t r, double value);
-		static std::string toLower(std::string& str);
+		static bool is_correct_value(double value);
+		static size_t binary_search(std::vector<Histogram_Object>& buckets, size_t l, size_t r, double value);
+		static std::string to_lower(std::string& str);
 };
 

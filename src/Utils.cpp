@@ -5,7 +5,7 @@
 /// </summary>
 /// <param name="value">Value to be classified</param>
 /// <returns>True if value is correct, false if not.</returns>
-bool Utils::isCorrectValue(double value)
+bool Utils::is_correct_value(double value)
 {
 	switch (fpclassify(value))
 	{
@@ -29,13 +29,13 @@ bool Utils::isCorrectValue(double value)
 /// <param name="right">Right index</param>
 /// <param name="value">Value to be found</param>
 /// <returns>Position if value was found in any bucket, -1 if not.</returns>
-size_t Utils::binarySearch(std::vector<HistogramObject>& buckets, size_t left, size_t right, double value)
+size_t Utils::binary_search(std::vector<Histogram_Object>& buckets, size_t left, size_t right, double value)
 {
     if (right >= left) 
     {       
         size_t mid = left + (right - left) / 2;
-        double min = buckets[mid].getMin();
-        double max = buckets[mid].getMax();
+        double min = buckets[mid].get_min();
+        double max = buckets[mid].get_max();
 
         // If the element is present at the middle itself
         if (value <= max && value >= min)
@@ -43,10 +43,10 @@ size_t Utils::binarySearch(std::vector<HistogramObject>& buckets, size_t left, s
 
         // If element is smaller than mid, then it can only be present in left subarray
         if (min > value)
-            return binarySearch(buckets, left, mid - 1, value);
+            return binary_search(buckets, left, mid - 1, value);
 
         // Else the element can only be present in right subarray
-        return binarySearch(buckets, mid + 1, right, value);
+        return binary_search(buckets, mid + 1, right, value);
     }
 
     // We reach here when element is not present in array
@@ -58,7 +58,7 @@ size_t Utils::binarySearch(std::vector<HistogramObject>& buckets, size_t left, s
 /// </summary>
 /// <param name="str">String to be lowered.</param>
 /// <returns>Lowered string.</returns>
-std::string Utils::toLower(std::string& str)
+std::string Utils::to_lower(std::string& str)
 {
     // Lower all characters in string.
     for (auto& c : str)

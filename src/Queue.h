@@ -8,7 +8,7 @@
 struct BUFFER_OBJECT
 {
     double* buffer{};
-    size_t readCount = 0;
+    size_t read_count = 0;
 };
 
 #pragma once
@@ -29,9 +29,9 @@ class Queue {
 
     public:
         Queue();
-        void Push(const BUFFER_OBJECT& item);
-        void RequestShutdown();
-        bool Pop(BUFFER_OBJECT& item);
-        void RestartShutdown();
+        void push(const BUFFER_OBJECT& item);
+        void request_shutdown();
+        bool pop(BUFFER_OBJECT& item);
+        void restart_shutdown();
 };
 

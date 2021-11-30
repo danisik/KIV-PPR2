@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <thread>
+#include <memory>
 
 #include "Utils.h"
 #include "Queue.h"
@@ -19,7 +20,10 @@ enum EXIT_CODE : size_t
     SUCCESS = 0x00,	
 
 	// Invalid arguments provided
-    INVALID_ARGS = 0x01
+    INVALID_ARGS = 0x01,
+
+	// Invalid file.
+	INVALID_FILE = 0x02
 };
 
 // Structs.
@@ -29,8 +33,8 @@ enum EXIT_CODE : size_t
 /// </summary>
 struct NUMBER_POSITION 
 {
-	size_t firstOccurence = 0;
-	size_t lastOccurence = 0;
+	size_t first_occurence = 0;
+	size_t last_occurence = 0;
 };
 
 /// <summary>
@@ -38,8 +42,8 @@ struct NUMBER_POSITION
 /// </summary>
 struct COUNTER_OBJECT
 {
-	size_t numbersCount = 0;
-	size_t numbersCountUnderMin = 0;
+	size_t numbers_count = 0;
+	size_t numbers_count_under_min = 0;
 };
 
 /// <summary>
@@ -47,9 +51,9 @@ struct COUNTER_OBJECT
 /// </summary>
 struct HISTOGRAM
 {
-	size_t numbersCount = 0;
-	size_t numbersCountUnderMin = 0;
-	std::vector<HistogramObject> buckets;
+	size_t numbers_count = 0;
+	size_t numbers_count_under_min = 0;
+	std::vector<Histogram_Object> buckets;
 };
 
 // Constants.
@@ -64,23 +68,23 @@ static constexpr const unsigned int BYTE = 8;
 static constexpr const unsigned int MB = 1024 * 1024;
 
 // Data buffer size.
-static constexpr const long BLOCKSIZE = 1 * MB / sizeof(double);
+static constexpr const long BLOCK_SIZE = 1 * MB / sizeof(double);
 
 // Number representing how many buckets must be created in single histogram.
-static constexpr const long BUCKET_COUNT = 0.6 * MB / sizeof(HistogramObject);
+static constexpr const long BUCKET_COUNT = 0.6 * MB / sizeof(Histogram_Object);
 
 // Queue for SMP.
 Queue queue;
 
 // Methods.
 int wmain(int argc, wchar_t** argv);
-HistogramObject getBucket(std::ifstream& stream, double percentile, double min, double max);
-HistogramObject findBucket(std::vector<HistogramObject> buckets, size_t numbersCount, size_t numbersCountUnderMin, double percentile);
-HistogramObject getBucketSMP(std::ifstream& stream, double percentile, double min, double max);
-bool getNumberPositions(std::ifstream& stream, double desiredValue, NUMBER_POSITION& position);
-std::vector<HistogramObject> createBuckets(double min, double max);
-COUNTER_OBJECT processDataBlock(std::vector<HistogramObject>& buckets, double* buffer, size_t readCount, double min, double max);
-void createSubHistogram(HISTOGRAM& histogram, double min, double max);
+Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min, double max);
+Histogram_Object find_bucket(std::vector<Histogram_Object> buckets, size_t numbers_count, size_t numbers_count_under_min, double percentile);
+Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double min, double max);
+bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_POSITION& position);
+std::vector<Histogram_Object> create_buckets(double min, double max);
+COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double* buffer, size_t read_count, double min, double max);
+void create_sub_histogram(HISTOGRAM& histogram, double min, double max);
 
 
 
