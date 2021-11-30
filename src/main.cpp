@@ -71,9 +71,27 @@ int wmain(int argc, wchar_t** argv)
 	}
 
 	// Percentile argument.
-	wchar_t* stop_wcs;
-	double percentile = wcstod(argv[2], &stop_wcs) / 100;
+	std::wstring percentile_WS(argv[2]);
+	std::string percentile_string;
 
+	std::transform(percentile_WS.begin(), percentile_WS.end(), std::back_inserter(percentile_string), [](wchar_t c) {
+		return (char)c;
+		});
+
+	// Convert string to double.
+	auto converted_percentile = std::istringstream(percentile_string);
+	double percentile = -1;
+
+	converted_percentile >> percentile;
+
+	// If conversion failed, then exit app.
+	if (converted_percentile.fail() || !converted_percentile.eof())
+	{
+		std::wcout << "Percentile is not a number." << std::endl;
+		return EXIT_CODE::INVALID_ARGS;
+	}
+
+	// Check if percentile value is between 0 and 100.
 	if (percentile < 0)
 	{
 		std::wcout << "Percentile too low, it must be between 0 and 100." << std::endl;
@@ -99,7 +117,7 @@ int wmain(int argc, wchar_t** argv)
 	// Just for testing purposes.
 	file_path = "..\\party.mp3";
 	percentile = (double)40 / (double)100;
-	processor = "smp";	
+	processor = "single";	
 
 	// Set first min and max.
 	double min = std::numeric_limits<double>::lowest();
@@ -567,7 +585,7 @@ Histogram_Object find_bucket(std::vector<Histogram_Object> buckets, size_t numbe
 	if (calculated_position == numbers_count)
 	{
 		// Reverse iterate through histogram - we need to find last bucket with frequency -> that is 100% of histogram.
-		size_t position = BUCKET_COUNT - 1;
+		position = BUCKET_COUNT - 1;
 		for (std::vector<Histogram_Object>::reverse_iterator it = buckets.rbegin(); it != buckets.rend(); ++it)
 		{
 			Histogram_Object& obj = *it;

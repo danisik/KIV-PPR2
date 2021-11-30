@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <thread>
 #include <memory>
+#include <cstdlib>
+#include <sstream>
 
 #include "Utils.h"
 #include "Queue.h"
@@ -68,10 +70,10 @@ static constexpr const unsigned int BYTE = 8;
 static constexpr const unsigned int MB = 1024 * 1024;
 
 // Data buffer size.
-static constexpr const long BLOCK_SIZE = 1 * MB / sizeof(double);
+static constexpr const long BLOCK_SIZE = MB / sizeof(double);
 
 // Number representing how many buckets must be created in single histogram.
-static constexpr const long BUCKET_COUNT = 0.6 * MB / sizeof(Histogram_Object);
+static constexpr const long BUCKET_COUNT =  MB / sizeof(Histogram_Object);
 
 // Queue for SMP.
 Queue queue;
