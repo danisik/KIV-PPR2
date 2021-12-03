@@ -6,7 +6,7 @@
 /// <param name="argc">Arguments count</param>
 /// <param name="argv">Arguments buffer</param>
 /// <returns>Exit code</returns>
-int wmain(int argc, wchar_t** argv) 
+int wmain(int argc, wchar_t** argv)
 {
 	/*
 	- Parametry: pprsolver.exe soubor percentil procesor
@@ -21,7 +21,7 @@ int wmain(int argc, wchar_t** argv)
 	- Èísla ze souboru: 64-bitový double
 
 
-	- Jako èísla budete uvažovat pouze ty 8-bytové sekvence, pro které std::fpclassify vrátí FP_NORMAL nebo FP_ZERO. 
+	- Jako èísla budete uvažovat pouze ty 8-bytové sekvence, pro které std::fpclassify vrátí FP_NORMAL nebo FP_ZERO.
 		Jiné sekvence budete ignorovat. Všechny nuly jsou si stejnì rovné.
 
 
@@ -33,7 +33,7 @@ int wmain(int argc, wchar_t** argv)
 
 	- Explicitní upozornìní dle postupných dotazù z øad studentù:
 		- Program nebude mít povoleno vytváøet soubory na disku.
-		- Jako èísla budete uvažovat pouze ty 8-bytové sekvence, pro které std::fpclassify vrátí FP_NORMAL nebo FP_ZERO. 
+		- Jako èísla budete uvažovat pouze ty 8-bytové sekvence, pro které std::fpclassify vrátí FP_NORMAL nebo FP_ZERO.
 			Jiné sekvence budete ignorovat. Všechny nuly jsou si stejnì rovné.
 		- Pozice v souboru vypisujte v bytech, tj. indexováno od nuly.
 		- Hexadecimální èíslo vypište napø. pomocí std::hexfloat.
@@ -49,7 +49,7 @@ int wmain(int argc, wchar_t** argv)
 		std::wcout << "Usage: pprsolver.exe <path_to_binary_file> <percentile> <processor>" << std::endl;
 		std::wcout << "<path_to_binary_file> - Full or relative path to binary file." << std::endl;
 		std::wcout << "<percentile> - Percentile value in %. Value between 0-100." << std::endl;
-		std::wcout << "<processor> - Used processor. Available processors: single, SMP, OpenCL." << std::endl;
+		std::wcout << "<processor> - Used processor. Available processors: 'single', 'SMP' or any opencl platform name installed on pc." << std::endl;
 		return EXIT_CODE::INVALID_ARGS;
 	}
 
@@ -59,7 +59,7 @@ int wmain(int argc, wchar_t** argv)
 
 	std::transform(file_path_WS.begin(), file_path_WS.end(), std::back_inserter(file_path), [](wchar_t c) {
 		return (char)c;
-	});	
+		});
 
 	// Check if file path is valid.
 	FILE* p_file;
@@ -112,17 +112,10 @@ int wmain(int argc, wchar_t** argv)
 
 	std::transform(processor_WS.begin(), processor_WS.end(), std::back_inserter(processor), [](wchar_t c) {
 		return (char)c;
-	});
+		});
 
 	// To be sure, lower all characters in processor variable.
 	std::string processor_lower = Utils::to_lower(processor);
-
-	// Just for testing purposes.	
-	file_path = "..\\data.iso";
-	percentile = (double)1 / (double)100;
-	processor = "smp";	
-	processor_lower = Utils::to_lower(processor);
-	
 
 	// Set first min and max.
 	double min = std::numeric_limits<double>::lowest();
@@ -131,6 +124,11 @@ int wmain(int argc, wchar_t** argv)
 
 	auto t_start = std::chrono::high_resolution_clock::now();
 	int cycles = 0;
+
+	// TODO: remove.
+	processor_lower = "opencl";
+	file_path = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3";
+	percentile = 0.4;
 
 	// Open stream to file.
 	std::ifstream stream(file_path, std::ios::in | std::ios::binary);
@@ -145,28 +143,30 @@ int wmain(int argc, wchar_t** argv)
 	// Create watchdog thread.
 	watchdog.start();
 
+	std::vector<Histogram_Object> buckets = create_buckets(min, max);
+
 	// Return buckets until only single number is presented.
 	while (true)
 	{
 		if (processor_lower == "single")
 		{
-			result_bucket = get_bucket(stream, percentile, min, max);
+			result_bucket = get_bucket(stream, buckets, percentile, min, max);
 		}
 		else if (processor_lower == "smp")
 		{
-			result_bucket = get_bucket_SMP(stream, percentile, min, max);
-		}
-		else if (processor_lower == "opencl")
-		{
-			// TODO: in progress.
-			break;
+			result_bucket = get_bucket_SMP(stream, buckets, percentile, min, max);
 		}
 		else
 		{
+			// TODO: opencl in progress
+			// TODO: based on return value print invalid args or do job.
+			/*
 			std::cout << "Invalid processor type - " << processor << std::endl;
-			std::cout << "Allowed values: single, SMP, OpenCL" << std::endl;
-
-			// Wait for watchdog.
+			std::cout << "Allowed values: 'single', 'SMP' or any opencl platform name installed on pc." << std::endl;
+			*/
+			// Wait for watchdog.			
+			test();
+			system("pause");
 			watchdog.join();
 			return EXIT_CODE::INVALID_ARGS;
 		}
@@ -188,11 +188,14 @@ int wmain(int argc, wchar_t** argv)
 		// Get maximum found value in file for bucket.
 		max = result_bucket.get_max_value_file();
 
+		reset_buckets(buckets, min, max);
+
 		cycles++;
 
 		// If bucket is represented as single number, then we found what we want.
 		if (min == max)
 		{
+
 			std::wcout << "Input parameters:" << std::endl;
 			std::wcout << "--------------------" << std::endl;
 			std::wcout << "- File: " << file_path.c_str() << std::endl;
@@ -207,30 +210,39 @@ int wmain(int argc, wchar_t** argv)
 			std::wcout << "- Value [HEX]: " << std::hexfloat << result_bucket.get_min_value_file() << std::endl;
 			std::wcout << "- Frequency: " << std::fixed << result_bucket.get_frequency() << std::endl;
 			std::wcout << "--------------------" << std::endl;
+
 			break;
 		}
 	}
 
-	// Iterate through file to find first and last position of number.
-	NUMBER_POSITION position;
-	position.first_occurence = std::numeric_limits<size_t>::max();
-	position.last_occurence = std::numeric_limits<size_t>::lowest();
-	bool found = get_number_positions(stream, min, position);
+	if (processor_lower != "opencl")
+	{
+		// Iterate through file to find first and last position of number.
+		NUMBER_POSITION position;
+		position.first_occurence = std::numeric_limits<size_t>::max();
+		position.last_occurence = std::numeric_limits<size_t>::lowest();
+		bool found = get_number_positions(stream, min, position);
 
-	// Print position.
-	std::wcout << std::endl;
-	std::wcout << "Value position" << std::endl;
-	std::wcout << "--------------------" << std::endl;
-	std::wcout << "- Position found: " << found << std::endl;
-	std::wcout << "- First position [BYTE]: " << position.first_occurence << std::endl;
-	std::wcout << "- Last position [BYTE]: " << position.last_occurence << std::endl;
-	std::wcout << "--------------------" << std::endl;
+		// TODO: výstup
+		//std::wcout << std::hexfloat << result_bucket.get_min_value_file() << " " << std::fixed << position.first_occurence << " " << position.last_occurence << std::endl;
 
-	// Print time.
-	auto t_end = std::chrono::high_resolution_clock::now();
-	double elapsed_time = std::chrono::duration<double, std::milli>(t_end - t_start).count() / 1000;
-	std::wcout << std::endl;
-	std::wcout << "Time needed: " << std::fixed << elapsed_time << " sec" << std::endl;
+
+		// Print position.
+		std::wcout << std::endl;
+		std::wcout << "Value position" << std::endl;
+		std::wcout << "--------------------" << std::endl;
+		std::wcout << "- Position found: " << found << std::endl;
+		std::wcout << "- First position [BYTE]: " << position.first_occurence << std::endl;
+		std::wcout << "- Last position [BYTE]: " << position.last_occurence << std::endl;
+		std::wcout << "--------------------" << std::endl;
+
+
+		// Print time.
+		auto t_end = std::chrono::high_resolution_clock::now();
+		double elapsed_time = std::chrono::duration<double, std::milli>(t_end - t_start).count() / 1000;
+		std::wcout << std::endl;
+		std::wcout << "Time needed: " << std::fixed << elapsed_time << " sec" << std::endl;
+	}
 
 	// Close file.
 	stream.close();
@@ -250,11 +262,9 @@ int wmain(int argc, wchar_t** argv)
 /// <param name="min">Min value for histogram</param>
 /// <param name="max">Max value for histogram</param>
 /// <returns>Bucket</returns>
-Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min, double max)
+Histogram_Object get_bucket(std::ifstream& stream, std::vector<Histogram_Object>& buckets, double percentile, double min, double max)
 {
 	watchdog.reset();
-	// Create buffer on heap, because it is too large to save on stack.
-	double* buffer = new double[BLOCK_SIZE / sizeof(double)];
 
 	// Seek stream to start.
 	stream.clear();
@@ -262,7 +272,6 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 
 	// Init return vals.
 	Histogram_Object result_bucket;
-	std::vector<Histogram_Object> buckets = create_buckets(min, max);
 
 	size_t i = 0;
 	size_t numbers_count = 0;
@@ -270,10 +279,13 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 
 	uint64_t offset = 0;
 
+	// Create buffer on heap, because it is too large to save on stack.
+	double* buffer = new double[BLOCK_SIZE / sizeof(double)];
+
 	watchdog.reset();
 	// Read file.
 	while (true)
-	{			
+	{
 		// Read block of data.
 		stream.seekg(offset * BLOCK_SIZE);
 		stream.read(reinterpret_cast<char*>(buffer), BLOCK_SIZE);
@@ -299,9 +311,7 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 	// Find bucket based on percentile.
 	result_bucket = find_bucket(buckets, numbers_count, numbers_count_under_min, percentile);
 
-	// Delete buffer from heap.
 	delete[] buffer;
-
 	watchdog.reset();
 	return result_bucket;
 }
@@ -314,7 +324,7 @@ Histogram_Object get_bucket(std::ifstream& stream, double percentile, double min
 /// <param name="min">Minimum allowed value for histogram</param>
 /// <param name="max">Maximum allowed value for histogram</param>
 /// <returns>Bucket</returns>
-Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double min, double max)
+Histogram_Object get_bucket_SMP(std::ifstream& stream, std::vector<Histogram_Object>& buckets, double percentile, double min, double max)
 {
 	watchdog.reset();
 
@@ -324,7 +334,7 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 	// Seek stream to start.
 	stream.clear();
 	stream.seekg(0);
-		
+
 	// Create threads.
 	std::vector<std::thread> threads;
 	std::vector<HISTOGRAM> thread_histograms;
@@ -337,13 +347,13 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 
 	// Create histograms and assign them to threads.
 	for (unsigned int i = 0; i < THREADS_COUNT; i++)
-	{		
+	{
 		threads.emplace_back(create_sub_histogram, std::ref(thread_histograms[i]), min, max);
 	}
 
 	watchdog.reset();
 	uint64_t offset = 0;
-	
+
 	// Read file.
 	while (true)
 	{
@@ -385,11 +395,10 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 	}
 
 	Histogram_Object result_bucket;
-	std::vector<Histogram_Object> buckets = create_buckets(min, max);
 
 	size_t numbers_count = 0;
 	size_t numbers_count_under_min = 0;
-	
+
 	watchdog.reset();
 	// Merge histograms.
 	for (int j = 0; j < THREADS_COUNT; j++)
@@ -401,7 +410,7 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 		numbers_count_under_min += thread_histogram.numbers_count_under_min;
 
 		std::vector<Histogram_Object> thread_buckets = thread_histogram.buckets;
-		
+
 		watchdog.reset();
 		for (int i = 0; i < buckets.size(); i++)
 		{
@@ -421,19 +430,6 @@ Histogram_Object get_bucket_SMP(std::ifstream& stream, double percentile, double
 
 	watchdog.reset();
 	return result_bucket;
-}
-
-/// <summary>
-/// Get bucket based on percentile for OpenCL.
-/// </summary>
-/// <param name="stream">File stream</param>
-/// <param name="percentile">Percentile</param>
-/// <param name="min">Minimum allowed value for histogram</param>
-/// <param name="max">Maximum allowed value for histogram</param>
-/// <returns>Bucket</returns>
-Histogram_Object get_bucket_opencl(std::ifstream& stream, double percentile, double min, double max)
-{
-
 }
 
 /// <summary>
@@ -457,7 +453,7 @@ bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_PO
 	stream.clear();
 	stream.seekg(0);
 
-	uint64_t offset = 0;	
+	uint64_t offset = 0;
 
 	// Read file.
 	while (true)
@@ -480,23 +476,19 @@ bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_PO
 		for (size_t i = 0; i < read_count; i++)
 		{
 			double value = buffer[i];
-			
-			// Check if double value is correct value.
-			if (Utils::is_correct_value(value))
-			{
-				if (value == desired_value)
-				{
-					if (position.first_occurence >= counter)
-					{
-						position.first_occurence = counter;
-						first_occurence_changed = true;
-					}
 
-					if (position.last_occurence <= counter)
-					{					
-						position.last_occurence = counter;
-						last_occurence_changed = true;
-					}
+			if (value == desired_value)
+			{
+				if (position.first_occurence >= counter)
+				{
+					position.first_occurence = counter;
+					first_occurence_changed = true;
+				}
+
+				if (position.last_occurence <= counter)
+				{
+					position.last_occurence = counter;
+					last_occurence_changed = true;
 				}
 			}
 
@@ -505,8 +497,8 @@ bool get_number_positions(std::ifstream& stream, double desired_value, NUMBER_PO
 	}
 
 	// We want position in Bytes.
-	position.first_occurence *= BYTE;
-	position.last_occurence *= BYTE;
+	position.first_occurence *= CUSTOM_BYTE;
+	position.last_occurence *= CUSTOM_BYTE;
 
 	// Delete buffer from heap.
 	delete[] buffer;
@@ -531,7 +523,7 @@ std::vector<Histogram_Object> create_buckets(double min, double max)
 
 	// Calculate step.
 	double step = std::abs(min / BUCKET_COUNT) + (max / BUCKET_COUNT);
-
+		
 	// Set from, to.
 	double from = min;
 	double to = min + step;
@@ -548,6 +540,34 @@ std::vector<Histogram_Object> create_buckets(double min, double max)
 	}
 
 	return buckets;
+}
+
+/// <summary>
+/// Create histogram (vector with buckets).
+/// </summary>
+/// <param name="min">Minimum allowed value of histogram.</param>
+/// <param name="max">Maximum allowed value of histogram.</param>
+/// <returns>Vector with buckets.</returns>
+void reset_buckets(std::vector<Histogram_Object>& buckets, double min, double max)
+{
+	// Calculate step.
+	double step = std::abs(min / BUCKET_COUNT) + (max / BUCKET_COUNT);
+
+	// Set from, to.
+	double from = min;
+	double to = min + step;
+
+	// Create buckets and set range.
+	for (size_t i = 0; i < BUCKET_COUNT; i++)
+	{
+		if (i == BUCKET_COUNT - 1) to = max;
+		buckets[i].set_min(from);
+		buckets[i].set_max(to);
+		buckets[i].reset_values();
+
+		from = to;
+		to += step;
+	}
 }
 
 /// <summary>
@@ -583,7 +603,7 @@ COUNTER_OBJECT process_data_block(std::vector<Histogram_Object>& buckets, double
 				}
 
 				// Get position using binary search.
-				size_t position = Utils::binary_search(buckets, 0, BUCKET_COUNT - 1, value);
+				long position = Utils::binary_search(buckets, 0, BUCKET_COUNT - 1, value);
 
 				watchdog.reset();
 				// If position was found.
@@ -694,7 +714,7 @@ void create_sub_histogram(HISTOGRAM& histogram, double min, double max)
 	size_t numbers_count = 0;
 	size_t numbers_count_under_min = 0;
 
-	while(true) 
+	while (true)
 	{
 		// Get block of data and process it.
 		BUFFER_OBJECT buffer;

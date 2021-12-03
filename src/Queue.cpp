@@ -3,18 +3,25 @@
 /// <summary>
 /// Constructor.
 /// </summary>
-Queue::Queue()
+CustomQueue::CustomQueue()
 {
 }
 
 /// <summary>
-/// Push data buffer to queue and notify one thread that data block is free to use.
+/// Push data buffer to CustomQueue and notify one thread that data block is free to use.
 /// </summary>
 /// <param name="item">Data buffer.</param>
-void Queue::push(const BUFFER_OBJECT& item)
+void CustomQueue::push(const BUFFER_OBJECT& item)
 {
     {
         std::unique_lock<std::mutex> lock(mutex);
+
+        // If buffers count in queue is same as allowed blocks, then wait.
+        if (queue.size() >= MEMORY_BLOCKS_ALLOWED)
+        {
+            cond_push.wait(lock);
+        }
+
         queue.push(item);
     }
     cond.notify_one();
@@ -23,7 +30,7 @@ void Queue::push(const BUFFER_OBJECT& item)
 /// <summary>
 /// Request shutdown for all threads, if file reading ends.
 /// </summary>
-void Queue::request_shutdown() 
+void CustomQueue::request_shutdown() 
 {
     {
         std::unique_lock<std::mutex> lock(mutex);
@@ -36,8 +43,8 @@ void Queue::request_shutdown()
 /// Pop last data buffer.
 /// </summary>
 /// <param name="item">Reference to data buffer</param>
-/// <returns>True if getting data buffer from queue was successful, false if not.</returns>
-bool Queue::pop(BUFFER_OBJECT& item) 
+/// <returns>True if getting data buffer from CustomQueue was successful, false if not.</returns>
+bool CustomQueue::pop(BUFFER_OBJECT& item) 
 {
     std::unique_lock<std::mutex> lock(mutex);
     while (true) 
@@ -54,14 +61,20 @@ bool Queue::pop(BUFFER_OBJECT& item)
             break;
         }
 
-        // If queue is empty and shutdown was not yet called, then wait.
+        // If CustomQueue is empty and shutdown was not yet called, then wait.
         cond.wait(lock);
     }
 
-    // Get data buffer from queue.
+    // Get data buffer from CustomQueue.
     item = std::move(queue.front());
 
-    // Remove it from queue.
+    // Allow queue to enqueue another data block.
+    if (queue.size() == MEMORY_BLOCKS_ALLOWED)
+    {
+        cond_push.notify_one();
+    }
+
+    // Remove it from CustomQueue.
     queue.pop();
     return true;
 }
@@ -69,7 +82,7 @@ bool Queue::pop(BUFFER_OBJECT& item)
 /// <summary>
 /// Restart variable representing shutdown.
 /// </summary>
-void Queue::restart_shutdown()
+void CustomQueue::restart_shutdown()
 {
     shutdown = false;
 }

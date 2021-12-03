@@ -85,7 +85,7 @@ double Histogram_Object::get_max_value_file()
 /// <param name="pMin">Currently found value in file.</param>
 void Histogram_Object::set_min_value_file(double pMin)
 {
-	if (this->min_value_file == 0 || this->min_value_file > pMin)
+	if (this->min_value_file > pMin)
 	{
 		this->min_value_file = pMin;
 	}
@@ -97,7 +97,7 @@ void Histogram_Object::set_min_value_file(double pMin)
 /// <param name="pMax">Currently found value in file.</param>
 void Histogram_Object::set_max_value_file(double pMax)
 {
-	if (this->max_value_file == 0 || this->max_value_file < pMax)
+	if (this->max_value_file < pMax)
 	{
 		this->max_value_file = pMax;
 	}
@@ -110,4 +110,21 @@ void Histogram_Object::set_max_value_file(double pMax)
 void Histogram_Object::add_frequency(size_t frequency)
 {
 	this->frequency += frequency;
+}
+
+void Histogram_Object::set_min(double min)
+{
+	this->min = min;
+}
+
+void Histogram_Object::set_max(double max)
+{
+	this->max = max;
+}
+
+void Histogram_Object::reset_values()
+{
+	this->min_value_file = std::numeric_limits<double>::max();
+	this->max_value_file = std::numeric_limits<double>::lowest();
+	this->frequency = 0;
 }

@@ -29,11 +29,11 @@ bool Utils::is_correct_value(double value)
 /// <param name="right">Right index</param>
 /// <param name="value">Value to be found</param>
 /// <returns>Position if value was found in any bucket, -1 if not.</returns>
-size_t Utils::binary_search(std::vector<Histogram_Object>& buckets, size_t left, size_t right, double value)
+long Utils::binary_search(std::vector<Histogram_Object>& buckets, long left, long right, double value)
 {
-    if (right >= left) 
-    {       
-        size_t mid = left + (right - left) / 2;
+    if (right >= left)
+    {
+        long mid = left + ((right - left) >> 1);
         double min = buckets[mid].get_min();
         double max = buckets[mid].get_max();
 
@@ -41,7 +41,7 @@ size_t Utils::binary_search(std::vector<Histogram_Object>& buckets, size_t left,
         if (value <= max && value >= min)
             return mid;
 
-        // If element is smaller than mid, then it can only be present in left subarray
+        // If element is smaller than min, then it can only be present in left subarray
         if (min > value)
             return binary_search(buckets, left, mid - 1, value);
 

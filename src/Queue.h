@@ -11,15 +11,22 @@ struct BUFFER_OBJECT
     size_t read_count = 0;
 };
 
+// Number representing how many threads are created.
+static constexpr const unsigned int THREADS_COUNT = 10;
+
+// Max blocks to be available in queue.
+static constexpr const unsigned int MEMORY_BLOCKS_ALLOWED = 4 * THREADS_COUNT;
+
 #pragma once
 /// <summary>
 /// Class representing blocking queue for SMP.
 /// </summary>
-class Queue {
+class CustomQueue {
 
     private:
         // Condition variable.
         std::condition_variable cond;
+        std::condition_variable cond_push;
         // Mutex.
         std::mutex mutex;
         // Queue of data buffers.
@@ -28,7 +35,7 @@ class Queue {
         bool shutdown = false;
 
     public:
-        Queue();
+        CustomQueue();
         void push(const BUFFER_OBJECT& item);
         void request_shutdown();
         bool pop(BUFFER_OBJECT& item);

@@ -4,7 +4,7 @@
 /// Constructor.
 /// </summary>
 /// <param name="p_interval">Interval</param>
-Watchdog::Watchdog(int p_interval)
+CustomWatchdog::CustomWatchdog(int p_interval)
 {
     interval = p_interval;
     timer = 0;
@@ -12,26 +12,26 @@ Watchdog::Watchdog(int p_interval)
 }
 
 /// <summary>
-/// Start watchdog.
+/// Start CustomWatchdog.
 /// </summary>
-void Watchdog::start()
+void CustomWatchdog::start()
 {
-    thread = std::thread(&Watchdog::loop, this);
+    thread = std::thread(&CustomWatchdog::loop, this);
 }
 
 /// <summary>
-/// End watchdog.
+/// End CustomWatchdog.
 /// </summary>
-void Watchdog::join()
+void CustomWatchdog::join()
 {
     stop();
     thread.join();
 }
 
 /// <summary>
-/// Stop watchdog.
+/// Stop CustomWatchdog.
 /// </summary>
-void Watchdog::stop()
+void CustomWatchdog::stop()
 {
     process_running = false;
 }
@@ -39,7 +39,7 @@ void Watchdog::stop()
 /// <summary>
 /// Reset current timer.
 /// </summary>
-void Watchdog::reset()
+void CustomWatchdog::reset()
 {    
     timer = 0;
 }
@@ -47,7 +47,7 @@ void Watchdog::reset()
 /// <summary>
 /// Thread body.
 /// </summary>
-void Watchdog::loop()
+void CustomWatchdog::loop()
 {
     while (process_running)
     {

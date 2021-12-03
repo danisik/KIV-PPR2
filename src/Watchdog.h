@@ -7,10 +7,10 @@
 /// <summary>
 /// Class representing watchdog thread.
 /// </summary>
-class Watchdog
+class CustomWatchdog
 {
     public:
-        Watchdog(int p_interval);
+        CustomWatchdog(int p_interval);
 
         void start();
         void join();
@@ -32,3 +32,4 @@ class Watchdog
 
         void loop();
 };
+

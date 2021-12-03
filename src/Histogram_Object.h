@@ -24,11 +24,14 @@ class Histogram_Object
 		void increment_frequency();
 		double get_min();
 		double get_max();
+		void set_min(double min);
+		void set_max(double max);
 		size_t get_frequency();
 		double get_min_value_file();
 		double get_max_value_file();
 		void set_min_value_file(double pMin);
 		void set_max_value_file(double pMax);
+		void reset_values();
 		void add_frequency(size_t frequency);
 };
 

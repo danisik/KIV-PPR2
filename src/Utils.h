@@ -13,7 +13,7 @@ class Utils
 {
 	public:
 		static bool is_correct_value(double value);
-		static size_t binary_search(std::vector<Histogram_Object>& buckets, size_t l, size_t r, double value);
+		static long binary_search(std::vector<Histogram_Object>& buckets, long l, long r, double value);
 		static std::string to_lower(std::string& str);
 };
 
