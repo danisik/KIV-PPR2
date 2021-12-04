@@ -22,38 +22,6 @@ bool Utils::is_correct_value(double value)
 }
 
 /// <summary>
-/// Binary search on histogram to find position of bucket by value (between min and max of bucket).
-/// </summary>
-/// <param name="buckets">Histogram</param>
-/// <param name="left">Left index</param>
-/// <param name="right">Right index</param>
-/// <param name="value">Value to be found</param>
-/// <returns>Position if value was found in any bucket, -1 if not.</returns>
-long Utils::binary_search(std::vector<Histogram_Object>& buckets, long left, long right, double value)
-{
-    if (right >= left)
-    {
-        long mid = left + ((right - left) >> 1);
-        double min = buckets[mid].get_min();
-        double max = buckets[mid].get_max();
-
-        // If the element is present at the middle itself
-        if (value <= max && value >= min)
-            return mid;
-
-        // If element is smaller than min, then it can only be present in left subarray
-        if (min > value)
-            return binary_search(buckets, left, mid - 1, value);
-
-        // Else the element can only be present in right subarray
-        return binary_search(buckets, mid + 1, right, value);
-    }
-
-    // We reach here when element is not present in array
-    return -1;
-}
-
-/// <summary>
 /// Perform string tolower on specific string.
 /// </summary>
 /// <param name="str">String to be lowered.</param>
@@ -67,4 +35,69 @@ std::string Utils::to_lower(std::string& str)
     }
 
     return str;
+}
+
+uint64_t Utils::convert_int_to_uint(int64_t value)
+{
+    uint64_t u_value;
+    std::memcpy(&u_value, &value, sizeof(value));
+
+    return u_value;
+}
+
+int64_t Utils::convert_uint_to_int(uint64_t value)
+{
+    int64_t i_value;
+    std::memcpy(&i_value, &value, sizeof(value));
+
+    return i_value;
+}
+
+int64_t Utils::convert_from_sign_magnitude(uint64_t value)
+{
+    int64_t i_value;
+    std::memcpy(&i_value, &value, sizeof(i_value));
+
+    if (i_value >= 0)
+    {
+        return i_value;
+    }
+    else
+    {
+        int64_t converted = (int64_t)(value & (~mask));
+
+        return -converted;
+    }
+}
+
+uint64_t Utils::convert_to_sign_magnitude(int64_t value)
+{
+    uint64_t u_value;
+
+    if (value >= 0)
+    {        
+        std::memcpy(&u_value, &value, sizeof(u_value));
+
+        return u_value;
+    }
+    else
+    {
+        u_value = (uint64_t)(-value);
+
+        return u_value | mask;
+    }
+}
+
+uint64_t Utils::get_value_from_index(size_t index, int64_t bucket_size, int64_t index_offset)
+{
+    int64_t value = (index - index_offset) * bucket_size;
+
+    return convert_to_sign_magnitude(value);
+}
+
+uint64_t Utils::get_index_from_value(int64_t value, int64_t bucket_size, int64_t index_offset)
+{
+    uint64_t index = (value / bucket_size) + index_offset;
+
+    return index;
 }
