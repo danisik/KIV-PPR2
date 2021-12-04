@@ -20,6 +20,7 @@ class Utils
 		static uint64_t get_index_from_value(int64_t value, int64_t bucket_size, int64_t index_offset);
 
 	private:
+		// Mask for bit operations.
 		static const uint64_t mask = (((uint64_t)1) << 63);
 };
 

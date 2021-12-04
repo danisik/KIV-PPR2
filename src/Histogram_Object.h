@@ -12,6 +12,8 @@ class Histogram_Object
 	private: 
 		// Number count in bucket.
 		size_t frequency;
+
+		// Bucket index. Used for calculating final values.
 		uint64_t index;
 
 	public:

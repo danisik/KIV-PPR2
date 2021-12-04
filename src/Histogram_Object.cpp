@@ -35,11 +35,18 @@ void Histogram_Object::add_frequency(size_t frequency)
 	this->frequency += frequency;
 }
 
+/// <summary>
+/// Reset all values for bucket.
+/// </summary>
 void Histogram_Object::reset_values()
 {
 	this->frequency = 0;
 }
 
+/// <summary>
+/// Get bucket index.
+/// </summary>
+/// <returns></returns>
 uint64_t Histogram_Object::get_index()
 {
 	return this->index;

@@ -69,8 +69,8 @@ struct HISTOGRAM
 	// We want to have uniform distribution of frequencies of values in buckets -> bucket_size = maximal frequency of numbers in single bucket.
 	int64_t bucket_size = 0;
 
-	// Offset for index -> we want to have index from 0, so we need to add offset to every single calculation.
-	int64_t index_offset = 0;
+	// Offset for bucket index -> we want to have index from 0, so we need to add offset to every single calculation.
+	int64_t bucket_index_offset = 0;
 };
 
 // Constants.
