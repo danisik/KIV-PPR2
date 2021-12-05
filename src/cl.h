@@ -8,8 +8,6 @@
 #include <CL/cl.hpp>
 
 #include "data.h"
-#include "Watchdog.h"
-#include "Utils.h"
 
 struct MIN_MAX_FILE_VALUES
 {

@@ -12,7 +12,6 @@
 #include <atomic>
 #include <sstream>
 
-#include "data.h"
 #include "cl.h"
 
 #undef max
@@ -39,9 +38,6 @@ struct COUNTER_OBJECT
 
 // Queue for SMP.
 CustomQueue queue;
-
-// Watchdog thread.
-CustomWatchdog watchdog(600);
 
 // Methods.
 int wmain(int argc, wchar_t** argv);

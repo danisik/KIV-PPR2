@@ -3,6 +3,10 @@
 #include "Histogram_Object.h"
 #include "Utils.h"
 #include "Queue.h"
+#include "Watchdog.h"
+
+// Watchdog thread.
+inline CustomWatchdog watchdog(600);
 
 /// <summary>
 /// Enum for return codes.

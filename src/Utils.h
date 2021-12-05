@@ -17,7 +17,6 @@ class Utils
 		static int64_t convert_from_sign_magnitude(uint64_t value);
 		static uint64_t convert_to_sign_magnitude(int64_t value);
 		static uint64_t get_value_from_index(size_t index, int64_t bucket_size, int64_t index_offset);
-		static uint64_t get_index_from_value(int64_t value, int64_t bucket_size, int64_t index_offset);
 
 	private:
 		// Mask for bit operations.

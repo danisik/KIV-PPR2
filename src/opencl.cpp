@@ -87,6 +87,7 @@ cl_ulong find_bucket_position_opencl(cl_ulong* bucket_frequency, double percenti
 /// <returns></returns>
 long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Object& result_bucket, double percentile, int64_t min, int64_t max, std::string input_platform)
 {
+	watchdog.reset();
 	long result = 0;
 	
 	// Get platform.
@@ -200,6 +201,7 @@ long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Ob
 	// Read file.
 	while (true)
 	{			
+		watchdog.reset();
 		// Read block of data.		
 		stream.seekg(offset * BLOCK_SIZE);
 			
@@ -226,6 +228,7 @@ long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Ob
 							buffer_data_block, min, max, histogram.bucket_size, histogram.bucket_index_offset).wait();
 	}
 		
+	watchdog.reset();
 	// Get buffers from GPU.
 	queue.enqueueReadBuffer(buffer_bucket_frequency, CL_FALSE, 0, BUCKET_COUNT * sizeof(cl_ulong), &bucket_frequency);
 	queue.enqueueReadBuffer(buffer_numbers_count, CL_FALSE, 0, sizeof(cl_ulong), &numbers_count);
@@ -238,6 +241,7 @@ long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Ob
 
 	// Get result bucket.
 	result_bucket = histogram.buckets[position];
+	watchdog.reset();
 
 	return EXIT_CODE::SUCCESS;
 }

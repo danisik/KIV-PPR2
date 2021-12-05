@@ -122,17 +122,3 @@ uint64_t Utils::get_value_from_index(size_t index, int64_t bucket_size, int64_t 
 
     return convert_to_sign_magnitude(value);
 }
-
-/// <summary>
-/// Converts value into index.
-/// </summary>
-/// <param name="value">Value.</param>
-/// <param name="bucket_size">Bucket size</param>
-/// <param name="bucket_index_offset">Bucket index offset</param>
-/// <returns>Unsigned index value</returns>
-uint64_t Utils::get_index_from_value(int64_t value, int64_t bucket_size, int64_t bucket_index_offset)
-{
-    uint64_t index = (value / bucket_size) + bucket_index_offset;
-
-    return index;
-}
