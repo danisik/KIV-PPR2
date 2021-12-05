@@ -6,7 +6,9 @@
 #include <cmath>
 #include <CL/cl.hpp>
 
+#include "data.h"
 #include "Watchdog.h"
+#include "Utils.h"
 
 struct MIN_MAX_FILE_VALUES
 {
@@ -14,7 +16,7 @@ struct MIN_MAX_FILE_VALUES
 	cl_double max_value_file;
 };
 
-cl_double test();
+cl_int test(std::string input_platform);
 
 const cl_ulong BUCKET_COUNT_OPENCL = 1024;
 const cl_ulong BLOCK_SIZE_OPENCL = 512;
@@ -24,36 +26,6 @@ const std::string kernel_src = R"===(
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
-
-long binary_search(double* min_bucket, double* max_bucket, long left, long right, double value)
-{
-    while (right >= left)
-    {
-        long mid = left + ((right - left) >> 1);
-        double min = min_bucket[mid];
-        double max = max_bucket[mid];
-
-        // If the element is present at the middle itself
-        if (value <= max && value >= min)
-		{
-            return mid;
-		}
-
-        // If element is smaller than min, then it can only be present in left subarray
-        if (min > value)
-		{	
-            right = mid - 1;
-		}
-		else
-		{
-			// Else the element can only be present in right subarray
-			left = mid + 1;
-		}
-    }
-
-    // We reach here when element is not present in array
-    return -1;
-}
 
 __kernel void process_data_block(global double* min_bucket, global double* max_bucket, global ulong* bucket_frequency, global ulong* numbers_count, global ulong* numbers_count_under_min,
 								 global double* value_file, global ulong* value_file_position, global double* data_buffer, double min, double max, ulong bucket_count)
@@ -70,7 +42,7 @@ __kernel void process_data_block(global double* min_bucket, global double* max_b
 		}
 
 		// Get position using binary search.
-		long position = binary_search(min_bucket, max_bucket, 0, bucket_count - 1, value);
+		long position = 1;
 
 		// If position was found.
 		if (position != -1)

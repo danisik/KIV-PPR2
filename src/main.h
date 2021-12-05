@@ -19,24 +19,6 @@
 
 #undef max
 
-/// <summary>
-/// Enum for return codes.
-/// </summary>
-enum EXIT_CODE : size_t
-{
-	// Everythins is ok.
-	SUCCESS = 0x00,
-
-	// Invalid arguments provided
-	INVALID_ARGS = 0x01,
-
-	// Invalid file.
-	INVALID_FILE = 0x02,
-
-	// Calculation cycled.
-	CYCLED_CALCULATION = 0x03
-};
-
 // Structs.
 
 /// <summary>

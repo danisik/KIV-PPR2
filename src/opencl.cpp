@@ -2,18 +2,16 @@
 
 #undef max
  
-cl_long get_default_platform(cl::Platform& default_platform)
+cl_long get_all_platforms(std::vector<cl::Platform>& all_platforms)
 {
-	//get all platforms (drivers)
-    std::vector<cl::Platform> all_platforms;
+	// Get all platforms (drivers)
     cl::Platform::get(&all_platforms);
 	
     if(all_platforms.size() == 0)
 	{
-        std::cout << " No platforms found. Check OpenCL installation!\n";
+        std::cout << "No platforms found. Check OpenCL installation!" << std::endl;
         return 1;
     }
-    default_platform = all_platforms[0];
 	
 	return 0;
 }
@@ -23,7 +21,7 @@ cl_long get_all_devices(std::vector<cl::Device>& all_devices, cl::Platform defau
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &all_devices);
     if(all_devices.size() == 0)
 	{
-        std::cout<<" No devices found. Check OpenCL installation!\n";
+        std::cout<<"No devices found. Check OpenCL installation!" << std::endl;
         return 1;
     }
 	
@@ -74,21 +72,42 @@ void set_min_max_file_value(std::vector<MIN_MAX_FILE_VALUES>& values, cl_double*
 	}
 }
  
-cl_double test() {
-	
-	// TODO: check OpenCL platform from arguments.	
-	
+cl_int test(std::string input_platform) 
+{
+
 	cl_long result = 0;
 	
 	// Get platform.
+	std::vector<cl::Platform> all_plaftorms;
 	cl::Platform default_platform;
-	result = get_default_platform(default_platform);
+	result = get_all_platforms(all_plaftorms);
 	
 	if (result > 0)
 	{
-		return 1;
+		return EXIT_CODE::OPENCL_PLAFTORM_NOT_FOUND;
 	}
 	
+	cl_bool platform_found = false;
+
+	for (cl_long i = 0; i < all_plaftorms.size(); i++)
+	{
+		cl::Platform platform = all_plaftorms[i];
+		std::string platform_name = platform.getInfo<CL_PLATFORM_NAME>();
+		if (Utils::to_lower(platform_name).find(input_platform) != std::string::npos)
+		{
+			platform_found = true;
+			default_platform = platform;
+			std::cout << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
+			break;
+		}
+	}
+	
+	if (!platform_found)
+	{
+		std::cout << "Input OpenCL platform cannot be found on this device." << std::endl;
+		return EXIT_CODE::INVALID_OPENCL_PLATFORM;
+	}
+
 	// Get device.
 	std::vector<cl::Device> all_devices;
 	cl::Device default_device;
@@ -96,7 +115,7 @@ cl_double test() {
 
 	if (result > 0)
 	{
-		return 1;
+		return EXIT_CODE::OPENCL_DEVICE_NOT_FOUND;
 	}
 
 	// Get default device.
@@ -279,7 +298,9 @@ cl_double test() {
 		if (found_min == found_max)
 		{
 			std::cout << "kokoot " << found_min << std::endl;
-			return found_min;
+			//return found_min;
 		}
+
+		return EXIT_CODE::SUCCESS;
 	}
 }

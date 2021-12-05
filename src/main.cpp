@@ -94,8 +94,8 @@ int wmain(int argc, wchar_t** argv)
 	int cycles = 0;
 
 	// TODO: remove.
-	processor_lower = "smp";
-	file_path = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\data.iso";
+	processor_lower = "nvidia";
+	file_path = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3";
 	percentile = 0.4;
 
 	// Open stream to file.
@@ -126,17 +126,15 @@ int wmain(int argc, wchar_t** argv)
 		}
 		else
 		{
-			// TODO: opencl in progress
-			// TODO: based on return value print invalid args or do job.
-			/*
-			std::cout << "Invalid processor type - " << processor << std::endl;
-			std::cout << "Allowed values: 'single', 'SMP' or any opencl platform name installed on pc." << std::endl;
-			*/
-			// Wait for watchdog.			
-			test();
-			system("pause");
-			watchdog.join();
-			return EXIT_CODE::INVALID_ARGS;
+			long result = test(processor_lower);
+
+			// If opencl execution was not success, just end application.
+			if (result != EXIT_CODE::SUCCESS)
+			{
+				watchdog.join();
+				system("pause");
+				return result;
+			}
 		}		
 
 		cycles++;
