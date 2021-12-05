@@ -90,14 +90,6 @@ int wmain(int argc, wchar_t** argv)
 	Histogram_Object result_bucket(0);
 	double result_value = 0;
 
-	auto t_start = std::chrono::high_resolution_clock::now();
-	int cycles = 0;
-
-	// TODO: remove.
-	processor_lower = "nvidia";
-	file_path = "C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3";
-	percentile = 0.4;
-
 	// Open stream to file.
 	std::ifstream stream(file_path, std::ios::in | std::ios::binary);
 
@@ -126,18 +118,15 @@ int wmain(int argc, wchar_t** argv)
 		}
 		else
 		{
-			long result = test(processor_lower);
+			long result = get_bucket_opencl(stream, histogram, result_bucket, percentile, min, max, processor_lower);
 
 			// If opencl execution was not success, just end application.
 			if (result != EXIT_CODE::SUCCESS)
 			{
 				watchdog.join();
-				system("pause");
 				return result;
 			}
 		}		
-
-		cycles++;
 
 		// If bucket is represented as single number, then we found what we want.
 		if (histogram.bucket_size == 1)
@@ -184,19 +173,12 @@ int wmain(int argc, wchar_t** argv)
 
 	std::wcout << std::hexfloat << result_value << " " << std::fixed << position.first_occurence << " " << position.last_occurence << std::endl;
 
-	// Print time.
-	auto t_end = std::chrono::high_resolution_clock::now();
-	double elapsed_time = std::chrono::duration<double, std::milli>(t_end - t_start).count() / 1000;
-	std::wcout << std::endl;
-	std::wcout << "Time needed: " << std::fixed << elapsed_time << " sec" << std::endl;
-
 	// Close file.
 	stream.close();
 
 	// Wait for watchdog.
 	watchdog.join();
 
-	system("pause");
 	return EXIT_CODE::SUCCESS;
 }
 
@@ -542,15 +524,15 @@ COUNTER_OBJECT process_data_block(HISTOGRAM& histogram, double* buffer, size_t r
 		// Check if double value is correct value.
 		if (Utils::is_correct_value(value))
 		{
-			int64_t i_value;
-			std::memcpy(&i_value, &value, sizeof(value));
+			uint64_t u_value;
+			std::memcpy(&u_value, &value, sizeof(value));
 
-			i_value = Utils::convert_from_sign_magnitude(Utils::convert_int_to_uint(i_value));
+			int64_t i_value = Utils::convert_from_sign_magnitude(u_value);
 
 			// Check if value is in histogram range.
 			if (i_value <= max && i_value >= min)
 			{				
-				uint64_t index = Utils::get_index_from_value(i_value, histogram.bucket_size, histogram.bucket_index_offset);
+				uint64_t index = (i_value / histogram.bucket_size) + histogram.bucket_index_offset;
 				histogram.buckets[index].increment_frequency();
 			}
 			else if (i_value < min)

@@ -2,7 +2,12 @@
 
 #undef max
  
-cl_long get_all_platforms(std::vector<cl::Platform>& all_platforms)
+/// <summary>
+/// Get all available platforms on current pc.
+/// </summary>
+/// <param name="all_platforms">Empty vector.</param>
+/// <returns>0 if there was at least 1 plaftorm, 1 if not.</returns>
+long get_all_platforms_opencl(std::vector<cl::Platform>& all_platforms)
 {
 	// Get all platforms (drivers)
     cl::Platform::get(&all_platforms);
@@ -16,7 +21,13 @@ cl_long get_all_platforms(std::vector<cl::Platform>& all_platforms)
 	return 0;
 }
 
-cl_long get_all_devices(std::vector<cl::Device>& all_devices, cl::Platform default_platform)
+/// <summary>
+/// Get all available devices on current pc.
+/// </summary>
+/// <param name="all_devices">Empty vector.</param>
+/// <param name="default_platform">Selected platform.</param>
+/// <returns>0 if there was at least 1 plaftorm, 1 if not.</returns>
+long get_all_devices_opencl(std::vector<cl::Device>& all_devices, cl::Platform default_platform)
 {
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &all_devices);
     if(all_devices.size() == 0)
@@ -28,7 +39,15 @@ cl_long get_all_devices(std::vector<cl::Device>& all_devices, cl::Platform defau
 	return 0;
 }
 
-cl_ulong find_bucket_opencl(cl_ulong* bucket_frequency, cl_double percentile, cl_ulong numbers_count, cl_ulong numbers_count_under_min, cl_ulong bucket_count)
+/// <summary>
+/// Find bucket position.
+/// </summary>
+/// <param name="bucket_frequency">Array of bucket frequencies.</param>
+/// <param name="percentile">Percentile</param>
+/// <param name="numbers_count">Numbers count.</param>
+/// <param name="numbers_count_under_min">Numbers count uner minimum.</param>
+/// <returns>Position of bucket on selected percentile.</returns>
+cl_ulong find_bucket_position_opencl(cl_ulong* bucket_frequency, double percentile, cl_ulong numbers_count, cl_ulong numbers_count_under_min)
 {
 	// Calculate position of desired bucket.
 	cl_ulong calculated_position = (cl_long)std::floor(percentile * numbers_count);
@@ -38,7 +57,7 @@ cl_ulong find_bucket_opencl(cl_ulong* bucket_frequency, cl_double percentile, cl
 	cl_ulong position = 0;
 
 	// Iterate through every bucket.
-	for (cl_ulong i = 0; i < bucket_count; i++)
+	for (cl_ulong i = 0; i < BUCKET_COUNT; i++)
 	{
 		// Add bucket frequency to cumulitave frequency.
 		cumulative_frequency += bucket_frequency[i];
@@ -54,33 +73,26 @@ cl_ulong find_bucket_opencl(cl_ulong* bucket_frequency, cl_double percentile, cl
 
 	return position;
 }
-
-void set_min_max_file_value(std::vector<MIN_MAX_FILE_VALUES>& values, cl_double* values_file, cl_ulong* values_file_position, cl_ulong values_count, cl_ulong values_file_count)
-{
-	for (cl_ulong i = 0; i < values_file_count; i++)
-	{
-		cl_ulong value_file_position = values_file_position[i];
-		if (values[value_file_position].min_value_file > values_file[i])
-		{
-			values[value_file_position].min_value_file = values_file[i];
-		}
-
-		if (values[value_file_position].max_value_file < values_file[i])
-		{
-			values[value_file_position].max_value_file = values_file[i];
-		}
-	}
-}
  
-cl_int test(std::string input_platform) 
+/// <summary>
+/// Get bucket based on percentile.
+/// </summary>
+/// <param name="stream">File stream to data.</param>
+/// <param name="histogram">Histogram object.</param>
+/// <param name="result_bucket">Bucket where result will be stored.</param>
+/// <param name="percentile">Percentile.</param>
+/// <param name="min">Minimal value</param>
+/// <param name="max">Maximal value</param>
+/// <param name="input_platform">Selected platform</param>
+/// <returns></returns>
+long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Object& result_bucket, double percentile, int64_t min, int64_t max, std::string input_platform)
 {
-
-	cl_long result = 0;
+	long result = 0;
 	
 	// Get platform.
 	std::vector<cl::Platform> all_plaftorms;
 	cl::Platform default_platform;
-	result = get_all_platforms(all_plaftorms);
+	result = get_all_platforms_opencl(all_plaftorms);
 	
 	if (result > 0)
 	{
@@ -89,7 +101,8 @@ cl_int test(std::string input_platform)
 	
 	cl_bool platform_found = false;
 
-	for (cl_long i = 0; i < all_plaftorms.size(); i++)
+	// Check if selected platform is in available platforms.
+	for (cl_ulong i = 0; i < all_plaftorms.size(); i++)
 	{
 		cl::Platform platform = all_plaftorms[i];
 		std::string platform_name = platform.getInfo<CL_PLATFORM_NAME>();
@@ -97,11 +110,11 @@ cl_int test(std::string input_platform)
 		{
 			platform_found = true;
 			default_platform = platform;
-			std::cout << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
 			break;
 		}
 	}
 	
+	// If not, return.
 	if (!platform_found)
 	{
 		std::cout << "Input OpenCL platform cannot be found on this device." << std::endl;
@@ -111,7 +124,7 @@ cl_int test(std::string input_platform)
 	// Get device.
 	std::vector<cl::Device> all_devices;
 	cl::Device default_device;
-	result = get_all_devices(all_devices, default_platform);
+	result = get_all_devices_opencl(all_devices, default_platform);
 
 	if (result > 0)
 	{
@@ -142,165 +155,89 @@ cl_int test(std::string input_platform)
 	}
 
 	// Create kernel function	
-	cl::make_kernel<cl::Buffer, // min_bucket
-					cl::Buffer, // max_bucket
-					cl::Buffer, // frequency
-					cl::Buffer, // numbers_count
+	cl::make_kernel<cl::Buffer, // bucket_frequency
+					cl::Buffer, // numbers_count,
 					cl::Buffer, // numbers_count_under_min
-					cl::Buffer, // value_file
-					cl::Buffer, // value_file_position
 					cl::Buffer, // data_buffer
-					cl_double,	// min
-					cl_double,	// max
-					cl_ulong
-					> process_data_block(cl::Kernel(program, "process_data_block"));
-
-	cl_double min = std::numeric_limits<cl_double>::lowest();
-	cl_double max = std::numeric_limits<cl_double>::max();
+					cl_long,	// min
+					cl_long,	// max
+					cl_long,	// bucket_size
+					cl_long		// bucket_index_offset
+					> process_data_value(cl::Kernel(program, "process_data_value"));
 	
-	std::ifstream stream("C:\\Users\\danisik\\Desktop\\PPR\\semestralka\\semestralni_prace\\party.mp3", std::ios::in | std::ios::binary);
-	
-	while (true) 
-	{	
-	    stream.clear();
-        stream.seekg(0);
+	stream.clear();
+    stream.seekg(0);
 			
-		// Create histogram.	
-		cl_double bucket_min[BUCKET_COUNT_OPENCL];
-		cl_double bucket_max[BUCKET_COUNT_OPENCL];
-		cl_ulong bucket_frequency[BUCKET_COUNT_OPENCL];
+	// Create histogram.	
+	cl_ulong bucket_frequency[BUCKET_COUNT];
+		
+	// Counters.
+	cl_ulong numbers_count = 0;
+	cl_ulong numbers_count_under_min = 0;
+		
+	// Create buffers for histogram.
+	const cl_long null_value = 0;
 
-		std::vector<MIN_MAX_FILE_VALUES> vector_bucket_value_file;
+	cl::Buffer buffer_bucket_frequency (ctx, CL_MEM_READ_WRITE, BUCKET_COUNT * sizeof(cl_ulong));
+	cl::Buffer buffer_numbers_count (ctx, CL_MEM_READ_WRITE, sizeof(cl_ulong));
+	cl::Buffer buffer_numbers_count_under_min (ctx, CL_MEM_READ_WRITE, sizeof(cl_ulong));
 		
-		// Counters.
-		cl_ulong numbers_count = 0;
-		cl_ulong numbers_count_under_min = 0;
+	// Buffer vars.
+	cl_double buffer[BLOCK_SIZE / sizeof(cl_double)];
+	cl::Buffer buffer_data_block(ctx, CL_MEM_READ_WRITE, sizeof(buffer));
 		
-		// Create buffers for histogram.
-		const cl_long null_value = 0;
-		
-		cl::Buffer buffer_bucket_min(ctx, CL_MEM_READ_WRITE, BUCKET_COUNT_OPENCL);
-		cl::Buffer buffer_bucket_max(ctx, CL_MEM_READ_WRITE, BUCKET_COUNT_OPENCL);
-		cl::Buffer buffer_bucket_frequency (ctx, CL_MEM_READ_WRITE, BUCKET_COUNT_OPENCL);
-		
-		cl::Buffer buffer_numbers_count (ctx, CL_MEM_READ_WRITE, sizeof(cl_ulong));
-		cl::Buffer buffer_numbers_count_under_min (ctx, CL_MEM_READ_WRITE, sizeof(cl_ulong));
-		
-		// TODO: remove in final version		
-		cl_double percentile = 0.00;
-		
-		// Buffer vars.
-		cl_double buffer[BLOCK_SIZE_OPENCL / sizeof(cl_double)];
-		cl::Buffer buffer_data_block(ctx, CL_MEM_READ_WRITE, BLOCK_SIZE_OPENCL / sizeof(buffer));
-		
-		cl_long offset = 0;
-		cl_long read_count = 0;
+	cl_long offset = 0;
+	cl_long read_count = 0;
 
-		// Set default values to buffers.
-		std::memset(bucket_frequency, 0, sizeof(bucket_frequency));
+	// Set default values to buffers.
+	std::memset(bucket_frequency, 0, sizeof(bucket_frequency));
+		
+	// Provide buffers to GPU.
+	queue.enqueueWriteBuffer(buffer_bucket_frequency, CL_FALSE, 0, BUCKET_COUNT * sizeof(cl_ulong), bucket_frequency);
+	queue.enqueueWriteBuffer(buffer_numbers_count, CL_FALSE, 0, sizeof(cl_ulong), &null_value);
+	queue.enqueueWriteBuffer(buffer_numbers_count_under_min, CL_FALSE, 0, sizeof(cl_ulong), &null_value);
 
-		// Calculate step.
-		cl_double step = std::abs(min / BUCKET_COUNT_OPENCL) + (max / BUCKET_COUNT_OPENCL);
+	// Read file.
+	while (true)
+	{			
+		// Read block of data.		
+		stream.seekg(offset * BLOCK_SIZE);
+			
+		stream.read(reinterpret_cast<char*>(buffer), BLOCK_SIZE);
 
-		cl_double from = min;
-		cl_double to = min + step;
-
-		// Create buckets and set range.
-		for (size_t i = 0; i < BUCKET_COUNT_OPENCL; i++)
+		offset++;
+			
+		// If nothing was read.
+		if (stream.gcount() == 0)
 		{
-			if (i == BUCKET_COUNT_OPENCL - 1) to = max;
-			bucket_min[i] = from;
-			bucket_max[i] = to;
-
-			MIN_MAX_FILE_VALUES values;
-			values.min_value_file = std::numeric_limits<cl_double>::max();
-			values.max_value_file = std::numeric_limits<cl_double>::lowest();
-
-			vector_bucket_value_file.push_back(values);
-
-			from = to;
-			to += step;
-		}
-		
-		// Provide buffers to GPU.
-		queue.enqueueWriteBuffer(buffer_bucket_min, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_double), bucket_min);
-		queue.enqueueWriteBuffer(buffer_bucket_max, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_double), bucket_max);
-		queue.enqueueWriteBuffer(buffer_bucket_frequency, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_ulong), bucket_frequency);
-		queue.enqueueWriteBuffer(buffer_numbers_count, CL_FALSE, 0, sizeof(cl_ulong), &null_value);
-		queue.enqueueWriteBuffer(buffer_numbers_count_under_min, CL_FALSE, 0, sizeof(cl_ulong), &null_value);
-
-		// Read file.
-		while (true)
-		{			
-			// Read block of data.		
-			stream.seekg(offset * BLOCK_SIZE_OPENCL);
+			break;
+		}			
 			
-			stream.read(reinterpret_cast<char*>(buffer), BLOCK_SIZE_OPENCL);
-
-			offset++;
+		// Stream read count.
+		read_count = stream.gcount() / sizeof(cl_double);		
 			
-			// If nothing was read.
-			if (stream.gcount() == 0)
-			{
-				break;
-			}			
+		cl::EnqueueArgs eargs(queue, cl::NDRange(read_count));
 			
-			// Stream read count.
-			read_count = stream.gcount() / sizeof(cl_double);		
-			
-			cl::EnqueueArgs eargs(queue, cl::NDRange(read_count));
-			
-			// Enqueue data.
-			queue.enqueueWriteBuffer(buffer_data_block, CL_TRUE, 0, sizeof(buffer), buffer);
+		// Enqueue data.
+		queue.enqueueWriteBuffer(buffer_data_block, CL_TRUE, 0, sizeof(buffer), buffer);
 
-			// Initialize buffer for values and position.
-			cl_double bucket_value_file[BLOCK_SIZE_OPENCL];
-			cl_ulong bucket_value_file_position[BLOCK_SIZE_OPENCL];
-			cl::Buffer buffer_bucket_value_file(ctx, CL_MEM_READ_WRITE, BLOCK_SIZE_OPENCL);
-			cl::Buffer buffer_bucket_value_file_position(ctx, CL_MEM_READ_WRITE, BLOCK_SIZE_OPENCL);
-
-			// Set default values.
-			std::memset(bucket_value_file, 0, sizeof(bucket_value_file));
-			std::memset(bucket_value_file_position, 0, sizeof(bucket_value_file_position));
-
-			// Enqueue buffers to GPU.
-			queue.enqueueWriteBuffer(buffer_bucket_value_file, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_double), bucket_value_file);
-			queue.enqueueWriteBuffer(buffer_bucket_value_file_position, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_ulong), bucket_value_file_position);
-
-			// Call function.
-			process_data_block(eargs, buffer_bucket_min, buffer_bucket_max, buffer_bucket_frequency, buffer_numbers_count, 
-								buffer_numbers_count_under_min, buffer_bucket_value_file, buffer_bucket_value_file_position,
-								buffer_data_block, min, max, BUCKET_COUNT_OPENCL).wait();
-
-			// Read buffers.
-			queue.enqueueReadBuffer(buffer_bucket_value_file, CL_TRUE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_double), &bucket_value_file);
-			queue.enqueueReadBuffer(buffer_bucket_value_file_position, CL_TRUE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_ulong), &bucket_value_file_position);
-
-			// Set min and max values.
-			set_min_max_file_value(vector_bucket_value_file, bucket_value_file, bucket_value_file_position, BUCKET_COUNT_OPENCL, BLOCK_SIZE_OPENCL);
-		}
-		
-		// Get buffers from GPU.
-		queue.enqueueReadBuffer(buffer_bucket_min, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_double), bucket_min);
-		queue.enqueueReadBuffer(buffer_bucket_max, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_double), bucket_max);
-		queue.enqueueReadBuffer(buffer_bucket_frequency, CL_FALSE, 0, BUCKET_COUNT_OPENCL * sizeof(cl_ulong), &bucket_frequency);
-		queue.enqueueReadBuffer(buffer_numbers_count, CL_FALSE, 0, sizeof(cl_ulong), &numbers_count);
-		queue.enqueueReadBuffer(buffer_numbers_count_under_min, CL_FALSE, 0, sizeof(cl_ulong), &numbers_count_under_min);
-		
-		queue.finish();
-
-		// Find position of bucket based on percentile.
-		cl_ulong position = find_bucket_opencl(bucket_frequency, percentile, numbers_count, numbers_count_under_min, BUCKET_COUNT_OPENCL);
-
-		cl_double found_min = vector_bucket_value_file[position].min_value_file;
-		cl_double found_max = vector_bucket_value_file[position].max_value_file;
-
-		if (found_min == found_max)
-		{
-			std::cout << "kokoot " << found_min << std::endl;
-			//return found_min;
-		}
-
-		return EXIT_CODE::SUCCESS;
+		// Call function.
+		process_data_value(eargs, buffer_bucket_frequency, buffer_numbers_count, buffer_numbers_count_under_min, 
+							buffer_data_block, min, max, histogram.bucket_size, histogram.bucket_index_offset).wait();
 	}
+		
+	// Get buffers from GPU.
+	queue.enqueueReadBuffer(buffer_bucket_frequency, CL_FALSE, 0, BUCKET_COUNT * sizeof(cl_ulong), &bucket_frequency);
+	queue.enqueueReadBuffer(buffer_numbers_count, CL_FALSE, 0, sizeof(cl_ulong), &numbers_count);
+	queue.enqueueReadBuffer(buffer_numbers_count_under_min, CL_FALSE, 0, sizeof(cl_ulong), &numbers_count_under_min);
+		
+	queue.finish();
+
+	// Find position of bucket based on percentile.
+	cl_ulong position = find_bucket_position_opencl(bucket_frequency, percentile, numbers_count, numbers_count_under_min);
+
+	// Get result bucket.
+	result_bucket = histogram.buckets[position];
+
+	return EXIT_CODE::SUCCESS;
 }
