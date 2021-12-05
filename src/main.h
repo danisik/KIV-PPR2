@@ -41,7 +41,7 @@ struct COUNTER_OBJECT
 CustomQueue queue;
 
 // Watchdog thread.
-CustomWatchdog watchdog(111600);
+CustomWatchdog watchdog(600);
 
 // Methods.
 int wmain(int argc, wchar_t** argv);
