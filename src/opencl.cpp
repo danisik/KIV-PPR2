@@ -83,12 +83,13 @@ cl_ulong find_bucket_position_opencl(cl_ulong* bucket_frequency, double percenti
 /// <param name="percentile">Percentile.</param>
 /// <param name="min">Minimal value</param>
 /// <param name="max">Maximal value</param>
-/// <param name="input_platform">Selected platform</param>
+/// <param name="input_device">Selected device</param>
 /// <returns></returns>
-long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Object& result_bucket, double percentile, int64_t min, int64_t max, std::string input_platform)
+long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Object& result_bucket, double percentile, int64_t min, int64_t max, std::string input_device)
 {
 	watchdog.reset();
 	long result = 0;
+	cl::Device default_device;
 	
 	// Get platform.
 	std::vector<cl::Platform> all_plaftorms;
@@ -100,40 +101,52 @@ long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Ob
 		return EXIT_CODE::OPENCL_PLAFTORM_NOT_FOUND;
 	}
 	
-	cl_bool platform_found = false;
+	cl_bool device_found = false;
+	std::vector<cl::Device> all_devices;
 
 	// Check if selected platform is in available platforms.
 	for (cl_ulong i = 0; i < all_plaftorms.size(); i++)
 	{
 		cl::Platform platform = all_plaftorms[i];
-		std::string platform_name = platform.getInfo<CL_PLATFORM_NAME>();
-		if (Utils::to_lower(platform_name).find(input_platform) != std::string::npos)
+
+		// Get devices for current platform.
+		result = get_all_devices_opencl(all_devices, platform);
+
+		// Iterate through every device.
+		for (cl::Device device : all_devices)
 		{
-			platform_found = true;
-			default_platform = platform;
+			// Device name.
+			std::string device_name = device.getInfo<CL_DEVICE_NAME>();
+
+			// Check if input device is presented in current list of devices.
+			if (Utils::to_lower(device_name).find(input_device) != std::string::npos)
+			{
+				device_found = true;
+				default_platform = platform;
+				default_device = device;
+				break;
+			}
+		}
+
+		if (device_found)
+		{
 			break;
 		}
+
+		all_devices.clear();
+
+		if (result > 0)
+		{
+			return EXIT_CODE::OPENCL_DEVICE_NOT_FOUND;
+		}
 	}
-	
+
 	// If not, return.
-	if (!platform_found)
+	if (!device_found)
 	{
-		std::cout << "Input OpenCL platform cannot be found on this device." << std::endl;
-		return EXIT_CODE::INVALID_OPENCL_PLATFORM;
+		std::cout << "Input OpenCL device cannot be found on this pc." << std::endl;
+		return EXIT_CODE::INVALID_OPENCL_DEVICE;
 	}
-
-	// Get device.
-	std::vector<cl::Device> all_devices;
-	cl::Device default_device;
-	result = get_all_devices_opencl(all_devices, default_platform);
-
-	if (result > 0)
-	{
-		return EXIT_CODE::OPENCL_DEVICE_NOT_FOUND;
-	}
-
-	// Get default device.
-	default_device = all_devices[0];
 	
 	// Create context and kernel program.
 	cl::Context ctx = cl::Context(default_device);

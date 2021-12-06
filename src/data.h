@@ -26,7 +26,7 @@ enum EXIT_CODE : size_t
 	OPENCL_PLAFTORM_NOT_FOUND = 0x03,
 
 	// Invalid OpenCL platform.
-	INVALID_OPENCL_PLATFORM = 0x04,
+	INVALID_OPENCL_DEVICE = 0x04,
 
 	// No OpenCL device found.
 	OPENCL_DEVICE_NOT_FOUND = 0x05

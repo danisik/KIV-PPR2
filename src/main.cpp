@@ -15,7 +15,7 @@ int wmain(int argc, wchar_t** argv)
 		std::wcout << "Usage: pprsolver.exe <path_to_binary_file> <percentile> <processor>" << std::endl;
 		std::wcout << "<path_to_binary_file> - Full or relative path to binary file." << std::endl;
 		std::wcout << "<percentile> - Percentile value in %. Value between 0-100." << std::endl;
-		std::wcout << "<processor> - Used processor. Available processors: 'single', 'SMP' or any opencl platform name installed on pc." << std::endl;
+		std::wcout << "<processor> - Used processor. Available processors: 'single', 'SMP' or any opencl device name on pc." << std::endl;
 		return EXIT_CODE::INVALID_ARGS;
 	}
 

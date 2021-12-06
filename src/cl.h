@@ -9,17 +9,11 @@
 
 #include "data.h"
 
-struct MIN_MAX_FILE_VALUES
-{
-	cl_double min_value_file;
-	cl_double max_value_file;
-};
-
 // Methods.
 long get_all_platforms_opencl(std::vector<cl::Platform>& all_platforms);
 long get_all_devices_opencl(std::vector<cl::Device>& all_devices, cl::Platform default_platform);
 cl_ulong find_bucket_position_opencl(cl_ulong* bucket_frequency, cl_double percentile, cl_ulong numbers_count, cl_ulong numbers_count_under_min);
-long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Object& result_bucket, double percentile, int64_t min, int64_t max, std::string input_platform);
+long get_bucket_opencl(std::ifstream& stream, HISTOGRAM& histogram, Histogram_Object& result_bucket, double percentile, int64_t min, int64_t max, std::string input_device);
 
 // Kernel functions.
 const std::string kernel_src = R"===(
