@@ -95,17 +95,29 @@ Testovaný soubor bude velký několik GB, ale paměť bude omezená na 250 MB. 
 
 
 \section{Analýza}
-\subsection{Plovoucí řádová čárka}
-\todo{TODO}
-\subsection{Type punning}
-\todo{TODO}
-\subsection{Reprezentace záporných čísel}
-\todo{TODO}
-Sign-magnitude
+\subsection{Čísla s plovoucí čárkou}
+Čísla s plovoucí čárkou jsou taková čísla, která jsou moc malá nebo velká pro vyjádření v pevné řádové čárce. Čísla jsou obecně uložena jako určité množství platných číslic vynásobený exponentem. Základem exponentu bývá většinou 2, 10 nebo 16. \\
+\indent V případě, že bychom chtěli pomocí těchto čísel vyjadřovat intervaly bucketů v histogramu, tak je potřeba počítat s velikou časovou režií při zpracování dat. Pro všechna načtená čísla s plovoucí čárkou je potřeba zjistit do jakého bucketu bude patřit, což lze zjistit pomocí vyhledávacích algoritmů. Nejrychlejší dostupný vyhledávací algoritmus je pro nás \textit{binární vyhledávání}, které má časovou složitost \textit{O(log n)}.
+\indent Rychlejší řešení je reprezentace hodnot jako celočíselných indexů za pomoci \textit{type punningu}. Type punning je programovací technika, pomocí které lze měnit datový typ proměnné, aniž bychom jakkoliv změnili její hodnotu (v bitové reprezentaci). Tímto řešením by odpadla potřeba pro každou hodnotu s plovoucí čárkou využívat binární vyhledávání, které je pro tak velké množství čísel relativně pomalé.
+
 \subsection{Symetrický multiprocesor}
-\todo{TODO}
-\subsection{OpenCL}
-\todo{TODO}
+Symetrický multiprocesor (SMP) je označení pro druh víceprocesorových systémů, kde jsou dva nebo více procesorů připojeny k jedné sdílené hlavní paměti, mají plný přístup ke všem vstupním a výstupním zařízením a jsou řízeny jedinou instancí operačního systému. \\
+\indent Operační systém zachází se všemi procesory stejně, žádný si nevyhrazuje pro speciální účely. \\
+\indent Každý procesor je propojen s vlastní vyrovnávací pamětí, která může být rozdělena na vyrovnávací paměť určenou pro data a vyrovnávací paměť pro instrukce). Tato vyrovnávací paměť je napojena na interní sběrnici, která zajišťuje řízení přenosu dat mezi těmito paměťmi a pamětí operačního systému (viz obrázek č. \ref{fig:smp}).\\
+\indent V této úloze bude SMP sloužit hlavně pro paralelní zpracování vstupního souboru, kdy hlavní vlákno může (skoro) bez omezení stále načítat datové bloky a vedlejší vlákna budou mezitím zpracovávat načtené bloky dat. V případě velmi rychlého zpracovávání dat bude nutné odladit počet vláken tak, aby nedocházelo ke zbytečnému uspávání jak vedlejších vláken, tak i hlavního vlákna.
+
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=14cm]{img/smp}
+\caption{Ukázka SMP}
+\label{fig:smp}
+\end{figure}
+
+\subsection{GPGPU}
+\textbf{General-purpose computing on graphics processing units} (neboli GPGPU) je způsob využití paralelizace na grafické kartě k výpočtům, které jsou jinak zpracovány pomocí \textit{Central processing unit} (CPU).\\
+\indent Pomocí GPGPU pipeline lze paralelizovat proces mezi jedním až více GPU a CPU. Protože GPU operuje na nižších frekvencích, tak grafické karty mají o to více procesorů, díky čemuž lze zpracovávat více dat za sekundu. \\
+\indent V této úloze bude GPGPU sloužit pro zpracování bloků dat - klasifikace a rozřazení do jednotlivých bucketů. Každému vláknu lze předat část dat (ideálně vždy jedno číslo), které klasifikuje a zjištěnému bucketu přičte frekvenci.Tento přístup by zaručoval rychlejší zpracování celého souboru.\\
 
 \newpage
 
@@ -156,7 +168,7 @@ Po zpracování dat a nalezení bucketu bylo potřeba zkontrolovat, zda bucket j
 \indent V případě, že nalezená minimální a maximální hodnota ze souboru v daném bucketu nejsou stejná, pak je potřeba nastavit nové minimum a maximum histogramu a opakovat celý proces zpracování dat znova.
 
 \subsection{Nové řešení}
-Nové řešení zahrnuje práce s celými čísly (indexy), převodem hodnot z plovoucí čárky na celá čísla, kódování záporných čísel do sign-magnitude formátu a obcházení datových typů.\\
+Nové řešení zahrnuje práce s celými čísly (indexy), převodem hodnot s plovoucí čárkou na celá čísla, kódování záporných čísel do sign-magnitude formátu a obcházení datových typů.\\
 \indent Control flow diagram lze vidět na obrázku č. \ref{fig:controlflow}. Data flow diagram lze vidět na obrázku č. \ref{fig:dataflow}.
 
 \subsubsection{Inicializace histogramu}
@@ -182,10 +194,10 @@ kde \textit{bucket\_index\_offset} je offset pro index bucketu, \textit{min} je 
 \noindent Velikost bucketu a offset pro index bucketu se budou používat při převodu hodnoty na index (a zpět).
 
 \subsubsection{Zpracování dat} \label{sssec:new_zpracovani}
-Rozdíl ve zpracování dat oproti starému řešení spočíval v převádění hodnot v plovoucí čárce na celočíselné indexy, což je o mnoho rychlejší jak binární vyhledávání. \\
+Rozdíl ve zpracování dat oproti starému řešení spočíval v převádění hodnot s plovoucí čárkou na celočíselné indexy, což je o mnoho rychlejší jak binární vyhledávání. \\
 Převod je realizován ve dvou krocích:
 \begin{enumerate}
-\item Uložení hodnoty v plovoucí čárce do binární podoby.
+\item Uložení hodnoty s plovoucí čárkou do binární podoby.
 \item Převedení hodnoty v binární podobě ze sign-magnitude formátu.\\
 \end{enumerate}
 
@@ -198,7 +210,7 @@ index = \frac{value}{bucket\_size} + bucket\_index\_offset  \\
 
 \subsubsection{Kontrola nalezeného bucketu}
 Kontrola nalezeného bucketu u nového řešení byla jednodušší, protože se kontrolovala pouze velikost nalezeného bucketu. \\
-\indent Pokud velikost bucketu byla rovna jedné, tak se pouze index bucketu převedl zpět na číslo v plovoucí čárce.\\
+\indent Pokud velikost bucketu byla rovna jedné, tak se pouze index bucketu převedl zpět na číslo s plovoucí čárkou.\\
 \indent Pokud velikost bucketu byla větší jak jedna, jednalo se o interval. Index nalezeného bucketu se převedl zpět ze sign-magnitude formátu a byl určen jako minimální hodnota histogramu. Maximální hodnota histogramu byla určena jako součet minima a velikosti bucketu a celý postup se opakoval.
 
 \newpage
@@ -241,7 +253,9 @@ Watchdog vlákno bylo realizováno jako jedno vlákno, které má v sobě číta
 Při použití symetrického mutliprocesoru se vytvoří 10 vláken, které mají za úkol zpracovávat datové bloky viz sekce č. \ref{sssec:old_zpracovani}, \ref{sssec:new_zpracovani}.\\
 \indent Předávání dat vláknům je zařízeno pomocí blokovací fronty, jejíž maximální velikost je nastavena na 40 bloků. Blokovací fronta funguje na způsob \textit{single producent - multiple consuments}. \\
 \indent Hlavní vlákno (single producent) načítá datové bloky a vkládá je do fronty. V případě, že fronta je zaplněná, se hlavní vlákno uspí pomocí podmínkové proměnné. \\
-\indent Vytvořená vlákna (multiple consuments) vybírají z fronty datové bloky a zpracovávají je. V případě, že fronta je prázdná, se vlákno uspí pomocí podmínkové proměnné.
+\indent Vytvořená vlákna (multiple consuments) vybírají z fronty datové bloky a zpracovávají je. V případě, že fronta je prázdná, se vlákno uspí pomocí podmínkové proměnné. \\
+\indent Po ukončení zpracování dat v dané iteraci je z vlákna předán zpět jeho histogram, který se následně spojí s hlavním histogramem.
+
 
 
 
